@@ -2,10 +2,10 @@ from fastapi import Depends, FastAPI
 
 from ...supabase_home.auth import SupabaseAuthService
 from ...supabase_home.client import SupabaseClient
-from ...supabase_home.database import SupabaseDatabaseService
-from ...supabase_home.edge_functions import SupabaseEdgeFunctionsService
-from ...supabase_home.realtime import SupabaseRealtimeService
-from ...supabase_home.storage import SupabaseStorageService
+from ...supabase_home.functions.database import SupabaseDatabaseService
+from ...supabase_home.functions.edge_functions import SupabaseEdgeFunctionsService
+from ...supabase_home.functions.realtime import SupabaseRealtimeService
+from ...supabase_home.functions.storage import SupabaseStorageService
 
 app = FastAPI(title="SupabaseClientBase", description="API to interact with current supabase client")
 

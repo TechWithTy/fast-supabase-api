@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 from ...supabase_home.client import SupabaseClient
-from ...supabase_home.storage import SupabaseStorageService
+from ...supabase_home.functions.storage import SupabaseStorageService
 
 app = FastAPI(title="SupabaseStorageAPI", description="API to interact with current storage functions")
 
