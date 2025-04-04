@@ -4,7 +4,6 @@ docs:
       - any-glob-to-any-file:
         - '**/*.md'
       - all-globs-to-all-files:
-        - '!frontend/**'
         - '!backend/**'
         - '!.github/**'
         - '!scripts/**'
@@ -21,5 +20,4 @@ internal:
         - .pre-commit-config.yaml
       - all-globs-to-all-files:
         - '!./**/*.md'
-        - '!frontend/**'
         - '!backend/**'
