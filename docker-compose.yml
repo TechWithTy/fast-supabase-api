@@ -18,12 +18,24 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_DB=${POSTGRES_DB?Variable not set}
-
+  cadvisor:
+      image: gcr.io/cadvisor/cadvisor:v0.45.0
+      container_name: cadvisor
+      restart: unless-stopped
+      volumes:
+        - /:/rootfs:ro
+        - /var/run:/var/run:ro
+        - /sys:/sys:ro
+        - /var/lib/docker/:/var/lib/docker:ro
+        - /dev/disk/:/dev/disk:ro
+      ports:
+        - "8880:8880"
   adminer:
     image: adminer
     restart: always
+    ports:
+    - "8080:8080"
     networks:
-      - traefik-public
       - default
     depends_on:
       - db
@@ -43,13 +55,13 @@ services:
       - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-https.tls=true
       - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-https.tls.certresolver=le
       - traefik.http.services.${STACK_NAME?Variable not set}-adminer.loadbalancer.server.port=8080
-
+   
+      
   prestart:
     image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
     build:
       context: ./backend
     networks:
-      - traefik-public
       - default
     depends_on:
       db:
@@ -76,11 +88,127 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:${REDIS_PORT:-6379}"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password} --maxmemory 256mb --maxmemory-policy allkeys-lru --port ${REDIS_PORT:-6379} --databases ${REDIS_DATABASES:-16}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_password}", "-p", "${REDIS_PORT:-6379}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+  celery:
+      build:
+        context: .
+        dockerfile: docker/Dockerfile
+      volumes:
+        - ./backend:/app
+      depends_on:
+        - redis
+        - db
+        - backend
+      env_file:
+        - .env
+      environment:
+        - POSTGRES_HOST=postgres
+        - DATABASE_URL=postgres://postgres:postgres@postgres:5432/django_db
+        - SUPABASE_DB_CONNECTION_STRING=${SUPABASE_DB_CONNECTION_STRING}
+        - SUPABASE_URL=${SUPABASE_URL}
+        - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+        - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+        - REDIS_HOST=redis
+        - REDIS_PORT=6379
+        - REDIS_PASSWORD=${REDIS_PASSWORD}
+        - REDIS_DB=${REDIS_DB}
+        - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:${REDIS_PORT}/${REDIS_DB}
+        - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:${REDIS_PORT}/${REDIS_DB}
+      command: celery -A core worker -l info
+      networks:
+        - app-network
+  celery-beat:
+      build:
+        context: .
+        dockerfile: docker/Dockerfile
+      command: celery -A core beat -l info
+      volumes:
+        - ./backend:/app
+      environment:
+        - POSTGRES_HOST=postgres
+        - DATABASE_URL=postgres://postgres:postgres@postgres:5432/django_db
+        - SUPABASE_DB_CONNECTION_STRING=${SUPABASE_DB_CONNECTION_STRING}
+        - SUPABASE_URL=${SUPABASE_URL}
+        - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+        - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+        - REDIS_HOST=redis
+        - REDIS_PORT=6379
+        - REDIS_PASSWORD=${REDIS_PASSWORD}
+        - REDIS_DB=${REDIS_DB}
+        - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:${REDIS_PORT}/${REDIS_DB}
+        - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:${REDIS_PORT}/${REDIS_DB}
+      depends_on:
+        - db
+        - redis
+        - backend
+        - celery
+      networks:
+        - app-network
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./backend/config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - ./config/grafana/dashboards:/etc/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USERNAME:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/dashboards/redis_dashboard.json
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Redis Exporter for Prometheus metrics
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    environment:
+      - REDIS_ADDR=redis://:${REDIS_PASSWORD:-redis_password}@redis:${REDIS_PORT:-6379}/${REDIS_DB:-0}
+    ports:
+      - "9121:9121"
+    depends_on:
+      - redis
+    networks:
+      - app-network
+    restart: unless-stopped
   backend:
     image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
     restart: always
     networks:
-      - traefik-public
       - default
     depends_on:
       db:
@@ -108,18 +236,29 @@ services:
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
+      - SUPABASE_DB_CONNECTION_STRING=${SUPABASE_DB_CONNECTION_STRING}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_DB=${REDIS_DB}
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:${REDIS_PORT}/${REDIS_DB}
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:${REDIS_PORT}/${REDIS_DB}
+      - REDIS_URL=${REDIS_URL:-redis://:${REDIS_PASSWORD:-redis_password}@redis:${REDIS_PORT:-6379}/${REDIS_DB:-0}} 
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-check/"]
       interval: 10s
       timeout: 5s
       retries: 5
-
+    
     build:
       context: ./backend
     labels:
       - traefik.enable=true
-      - traefik.docker.network=${STACK_NAME}_traefik-public
+      - traefik.docker.network=traefik-public
       - traefik.constraint-label=traefik-public
 
       - traefik.http.services.${STACK_NAME?Variable not set}-backend.loadbalancer.server.port=8000
@@ -177,26 +316,21 @@ services:
         condition: service_healthy
 
   bookie:
-    image: apachepulsar/pulsar:latest
+    image: apachepulsar/pulsar:3.1.0
     container_name: bookie
-    restart: on-failure
-    networks:
-      - pulsar
+    command: 
+      - bash
+      - -c
+      - |
+        mkdir -p /pulsar/data/bookkeeper/ledgers/current && 
+        bin/apply-config-from-env.py conf/bookkeeper.conf && 
+        bin/pulsar bookie
+    volumes:
+      - ./pulsar/data/bookkeeper:/pulsar/data/bookkeeper
     environment:
-      - clusterName=cluster-a
       - zkServers=zookeeper:2181
       - metadataServiceUri=metadata-store:zk:zookeeper:2181
-      - advertisedAddress=bookie
-      - BOOKIE_MEM=-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m
-    depends_on:
-      zookeeper:
-        condition: service_healthy
-      pulsar-init:
-        condition: service_completed_successfully
-    volumes:
-      - pulsar-bookie-data:/pulsar/data/bookkeeper
-    command: bash -c "bin/apply-config-from-env.py conf/bookkeeper.conf && exec bin/pulsar bookie"
-
+      - PULSAR_MEM=${PULSAR_MEM:- -Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m}
   broker:
     image: apachepulsar/pulsar:latest
     container_name: broker
@@ -204,7 +338,7 @@ services:
     restart: on-failure
     networks:
       - pulsar
-      - traefik-public
+      - default
     environment:
       - metadataStoreUrl=zk:zookeeper:2181
       - zookeeperServers=zookeeper:2181
@@ -226,13 +360,17 @@ services:
     command: bash -c "bin/apply-config-from-env.py conf/broker.conf && exec bin/pulsar broker"
 
 networks:
-  traefik-public:
-    external: true
-    name: ${STACK_NAME}_traefik-public
+  default:
+    driver: bridge
   pulsar:
+    driver: bridge
+  app-network:
     driver: bridge
 
 volumes:
   app-db-data:
   pulsar-zookeeper-data:
   pulsar-bookie-data:
+  prometheus-data:
+  redis-data:
+  grafana-data:
