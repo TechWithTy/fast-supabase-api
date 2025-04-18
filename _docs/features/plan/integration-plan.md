@@ -14,7 +14,7 @@
 
 - POST `/leads/generate` — Generate leads by ZIP
 - POST `/leads/upload` — Upload CSV
-- POST `/leads/enrich` — Run MLS + OSINT enrichments (future, optional)
+- POST `/leads/enrich` — Run MLS + OSINT enrichments
 - GET `/leads` — Filterable list of leads
 - PATCH `/leads/{lead_id}` — Update lead (status, tags, etc.)
 - POST `/leads/schedule-call` — Queue VAPI call for a lead
@@ -33,8 +33,8 @@
 #### **Call Handling**
 
 - POST `/vapi/calls` — Start a VAPI call (assistant_id, lead_id, etc.)
-- POST `/vapi/calls/end-webhook` — Handle call result (summary, outcome)
-- POST `/vapi/calls/status-webhook` — Monitor live call state (ringing, voicemail, error)
+- POST `/vapi/calls/end-webhook` — Handle call result (summary, outcome) **[Implemented]**
+- POST `/vapi/calls/status-webhook` — Monitor live call state (ringing, voicemail, error) **[Implemented]**
 - GET `/vapi/calls` — List recent calls (filter by status, lead, assistant)
 - GET `/vapi/calls/{call_id}` — Get call details and transcript
 
@@ -42,31 +42,35 @@
 
 ### 🔄 GHL Sync
 
-- POST `/ghl/create-subaccount` — Create subaccount from snapshot
-- POST `/ghl/upload-contact` — Send lead/contact to subaccount
-- POST `/ghl/apply-tag` — Add “to-call” tag
-- POST `/ghl/webhook/contact-tagged` — Webhook: contact tagged (triggers call workflow)
-- POST `/ghl/schedule-appointment` — Schedule callback/follow-up
+- POST `/ghl/create-subaccount` — Create subaccount from snapshot **[Implemented]**
+- POST `/ghl/upload-contact` — Send lead/contact to subaccount **[Implemented]**
+- POST `/ghl/apply-tag` — Add “to-call” tag **[Implemented]**
+- POST `/ghl/schedule-appointment` — Schedule callback/follow-up **[Implemented]**
+
+> **Note:**
+> Contact tag trigger logic (e.g., when a contact is tagged with "to-call") will be handled entirely within Go High Level Workflows. The `/ghl/webhook/contact-tagged` endpoint is not required in this backend and has been removed from the API plan. All automations and follow-ups based on tagging should be configured in GHL Workflows directly for simplicity and reliability.
 
 ---
 
-### 📊 OSINT & MLS (Planned/Future)
+### 📊 OSINT & MLS
 
-- POST `/osint/email` — Run email intelligence (future)
-- POST `/osint/phone` — Run phone intelligence (future)
-- POST `/mls/property-info` — Lookup property by address (future)
-
-  - Social login(Facebook & LinkedIn)
-    - Password reset
-      - MCP access to all key endpoint flows
-        - MLS data integration
-          - Email + phone number OSINT projects
-
-Below is the ** revised plan ** in Markdown with a clear structure for implementation and integration points.
+- POST `/osint/email` — Run email intelligence **[Implemented, uses email2phonenumber]**
+- POST `/osint/phone` — Run phone intelligence **[Implemented, uses Phunter]**
+- POST `/mls/property-info` — Lookup property by address **[Implemented, uses HomeHarvest]**
 
 ---
 
-    ````markdown
+#### Integration Notes / Updates
+
+- All OSINT and MLS endpoints now use their respective libraries for real data enrichment:
+  - `/osint/email` → `email2phonenumber` (calls `start_scrapping`)
+  - `/osint/phone` → `Phunter` (calls `phunter_service` async)
+  - `/mls/property-info` → `HomeHarvest` (calls `scrape_property`)
+- All new routers are wired into the FastAPI app in `api/main.py`.
+- Endpoints return structured JSON for easy frontend consumption.
+- GHL, VAPI, and OSINT/MLS endpoints are all modular and independently testable.
+
+---
 
 # 🏗 MVP Development Plan – Lead Ignite(v2)
 
@@ -78,27 +82,50 @@ Lead Ignite automates lead generation, qualification, and contact for real estat
 
 ## 🔧 Tech Stack
 
-    - ** Frontend **: Next.js(TypeScript), Zustand(state), Zod(validation)
-        - ** Backend **: FastAPI(Python), Supabase(Postgres, Auth, Edge Functions)
-            - ** Voice **: VAPI
-                - ** CRM **: GoHighLevel
-                    - ** AI Layer **: MCP(Model Context Protocol)
-                        - ** External Integrations **: Facebook, LinkedIn, MLS API, OSINT(Email + Phone)
+- ** Frontend **: Next.js(TypeScript), Zustand(state), Zod(validation)
+- ** Backend **: FastAPI(Python), Supabase(Postgres, Auth, Edge Functions)
+- ** Voice **: VAPI
+- ** CRM **: GoHighLevel
+- ** AI Layer **: MCP(Model Context Protocol)
+- ** External Integrations **: Facebook, LinkedIn, MLS API, OSINT(Email + Phone)
 
 ---
 
-## ✅ MVP Features
+## ✅ MVP Features (Key Integration Updates)
 
 ### 1. 🧾 Lead Intake & Upload
 
-    - User defines target ZIPs or uploads CSV
-        - Validate contacts(Zod)
-            - Enrich with:
+- User defines target ZIPs or uploads CSV
+- Validate contacts(Zod)
+- Enrich with:
+  - **Email OSINT** (`/osint/email`)
+  - **Phone OSINT** (`/osint/phone`)
+  - **MLS Lookup** (`/mls/property-info`)
+- Queue VAPI calls and sync to GHL as needed
 
-- ** Email OSINT **
-- ** Phone OSINT **
-- ** MLS Property Info **
-  - Store to Supabase + Push to GHL subaccount
+### 2. 🤖 Voice AI (VAPI)
+
+- Full CRUD for assistants and calls
+- Webhooks for call status/results now live
+
+### 3. 🔄 GHL Integration
+
+- All major endpoints implemented
+- Contact tagging handled in GHL workflows
+
+### 4. 📊 OSINT & MLS
+
+- All enrichment endpoints implemented and integrated with their respective libraries
+
+---
+
+## 🔁 Next Steps
+
+- Continue E2E testing with real data
+- Add frontend integration for new endpoints
+- Monitor and optimize for performance, error handling, and security
+
+---
 
 ### 2. 🔐 Authentication
 

@@ -9,8 +9,7 @@ from ...supabase_home.client import SupabaseClient
 app = FastAPI(title="Supabase Auth API", description="API for Supabase Authentication")
 
 
-# Initialize the Supabase Auth Servi
-# Pydantic models for request validation
+
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
