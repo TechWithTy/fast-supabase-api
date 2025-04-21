@@ -2,6 +2,7 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi_limiter.depends import RateLimiter
 from sqlmodel import col, delete, func, select
 
 from app import crud
@@ -31,7 +32,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get(
     "/",
-    dependencies=[Depends(get_current_active_superuser)],
+    dependencies=[Depends(get_current_active_superuser), Depends(RateLimiter(times=10, seconds=60))],
     response_model=UsersPublic,
 )
 def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
@@ -205,7 +206,7 @@ def update_user(
     return db_user
 
 
-@router.delete("/{user_id}", dependencies=[Depends(get_current_active_superuser)])
+@router.delete("/{user_id}", dependencies=[Depends(get_current_active_superuser), Depends(RateLimiter(times=5, seconds=60))])
 def delete_user(
     session: SessionDep, current_user: CurrentUser, user_id: uuid.UUID
 ) -> Message:

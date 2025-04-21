@@ -1,19 +1,23 @@
+import os
 import secrets
 import warnings
 from typing import Annotated, Any, Literal
 
+from dotenv import load_dotenv
 from pydantic import (
     AnyUrl,
     BeforeValidator,
     EmailStr,
     HttpUrl,
-    PostgresDsn,
     computed_field,
     model_validator,
 )
-from pydantic_core import MultiHostUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Self
+
+from app.tests.utils.env_loader import load_env
+
+load_env()
 
 
 def parse_cors(v: Any) -> list[str] | str:
@@ -51,23 +55,48 @@ class Settings(BaseSettings):
 
     PROJECT_NAME: str
     SENTRY_DSN: HttpUrl | None = None
-    POSTGRES_SERVER: str
-    POSTGRES_PORT: int = 5432
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str = ""
-    POSTGRES_DB: str = ""
 
-    @computed_field  # type: ignore[prop-decorator]
+    # --- Database Config ---
+    # Postgres (optional)
+    POSTGRES_SERVER: str | None = None
+    POSTGRES_PORT: int | None = None
+    POSTGRES_USER: str | None = None
+    POSTGRES_PASSWORD: str | None = None
+    POSTGRES_DB: str | None = None
+
+    # Supabase (optional)
+    SUPABASE_URL: str | None = None
+    SUPABASE_ANON_KEY: str | None = None
+    SUPABASE_SERVICE_ROLE_KEY: str | None = None
+
     @property
-    def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
-        return MultiHostUrl.build(
-            scheme="postgresql+psycopg",
-            username=self.POSTGRES_USER,
-            password=self.POSTGRES_PASSWORD,
-            host=self.POSTGRES_SERVER,
-            port=self.POSTGRES_PORT,
-            path=self.POSTGRES_DB,
-        )
+    def SQLALCHEMY_DATABASE_URI(self) -> str | None:
+        if all(
+            [
+                self.POSTGRES_SERVER,
+                self.POSTGRES_PORT,
+                self.POSTGRES_USER,
+                self.POSTGRES_PASSWORD,
+                self.POSTGRES_DB,
+            ]
+        ):
+            return f"postgresql+psycopg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        return None
+
+    @property
+    def supabase_enabled(self) -> bool:
+        return bool(self.SUPABASE_URL and self.SUPABASE_ANON_KEY)
+
+    @property
+    def db_backend(self) -> str:
+        if self.SQLALCHEMY_DATABASE_URI:
+            return "postgres"
+        elif self.supabase_enabled:
+            return "supabase"
+        else:
+            raise RuntimeError(
+                "No database backend configured. Set either Postgres or Supabase environment variables."
+            )
 
     SMTP_TLS: bool = True
     SMTP_SSL: bool = False
@@ -109,7 +138,8 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _enforce_non_default_secrets(self) -> Self:
         self._check_default_secret("SECRET_KEY", self.SECRET_KEY)
-        self._check_default_secret("POSTGRES_PASSWORD", self.POSTGRES_PASSWORD)
+        if self.POSTGRES_PASSWORD:
+            self._check_default_secret("POSTGRES_PASSWORD", self.POSTGRES_PASSWORD)
         self._check_default_secret(
             "FIRST_SUPERUSER_PASSWORD", self.FIRST_SUPERUSER_PASSWORD
         )

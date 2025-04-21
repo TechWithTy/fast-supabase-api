@@ -40,6 +40,29 @@
 
 ---
 
+### 📣 ElevenLabs Voice Cloning & Vapi Integration
+
+- POST `/elevenlabs/clone-voice` — Clone a new custom voice using ElevenLabs API (uploads audio, returns `voice_id`).
+- POST `/vapi/voice/upload-elevenlabs-voice` — Register (sync) the ElevenLabs `voice_id` to Vapi for a specific customer/user.
+- Both endpoints now use shared backend logic for DRY, secure, and robust integration.
+- The Vapi sync endpoint uses the Vapi SDK to register the voice for the customer (not just a placeholder).
+
+#### Integration Steps (Completed)
+1. Clone voice via `/elevenlabs/clone-voice` (returns `voice_id`).
+2. Register voice to Vapi via `/vapi/voice/upload-elevenlabs-voice` (requires `customer_id`).
+3. Voice is now available for use in Vapi assistants/calls for that customer.
+
+#### Next Steps / Remaining Work
+- [ ] Add authentication and authorization to these endpoints (ensure only valid users/customers can register voices).
+- [ ] Store voice metadata and mapping (`voice_id`, `customer_id`, label, etc.) in the database for auditing and UI display.
+- [ ] Add automated tests for voice cloning and registration flows.
+- [ ] Add error handling for edge cases (e.g., duplicate voices, failed syncs, quota limits).
+- [ ] Integrate frontend UI for voice management (upload, view, assign to assistant).
+- [ ] Update onboarding flows to include voice registration if needed.
+- [ ] Document API usage and required payloads for frontend/devs.
+
+---
+
 ### 🔄 GHL Sync
 
 - POST `/ghl/create-subaccount` — Create subaccount from snapshot **[Implemented]**
@@ -357,7 +380,3 @@ Would you like:
 - GitHub repo layout suggestion for frontend/backend?
 
 Let me know how you'd like to break down dev sprints or if you want a task list for Notion/Jira setup.
-
-`````
-            ````
-`````

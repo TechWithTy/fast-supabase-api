@@ -7,11 +7,15 @@ from app.core.config import settings
 from app.api.based_routes.vapi.assistants import router as vapi_assistants_router
 from app.api.based_routes.vapi.calls import router as vapi_calls_router
 from app.api.based_routes.vapi.webhooks import router as vapi_webhooks_router
+from app.api.based_routes.vapi.voice import router as vapi_voice_router
 
 # OSINT & MLS routers
 from app.api.based_routes.osint.email import router as osint_email_router
 from app.api.based_routes.osint.phone import router as osint_phone_router
 from app.api.based_routes.osint.mls import router as mls_router
+
+# ElevenLabs routers
+from app.api.based_routes.eleven_labs.voice import router as elevenlabs_voice_router
 
 # GHL routers (assuming your GHL endpoints are in these files)
 from app.api.routes.ghl.create_subaccount import router as ghl_create_subaccount_router
@@ -29,6 +33,10 @@ api_router.include_router(items.router)
 api_router.include_router(vapi_assistants_router)
 api_router.include_router(vapi_calls_router)
 api_router.include_router(vapi_webhooks_router)
+api_router.include_router(vapi_voice_router)
+
+# ElevenLabs endpoints
+api_router.include_router(elevenlabs_voice_router)
 
 # OSINT & MLS endpoints
 api_router.include_router(osint_email_router)
