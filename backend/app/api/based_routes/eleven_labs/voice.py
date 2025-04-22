@@ -1,11 +1,14 @@
 """
 API routes for ElevenLabs Voice Cloning using shared implementation.
 """
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from pydantic import BaseModel
-from typing import Optional
 import os
-from backend.app.eleven_labs_home.api.voices.create_voice_clone import create_voice_clone
+
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from pydantic import BaseModel
+
+from app.eleven_labs_home.api.voices.create_voice_clone import (
+    create_voice_clone,
+)
 
 router = APIRouter(prefix="/elevenlabs", tags=["ElevenLabs Voice Cloning"])
 
@@ -16,7 +19,7 @@ class VoiceCloneResponse(BaseModel):
 @router.post("/clone-voice", response_model=VoiceCloneResponse)
 async def clone_voice(
     name: str = Form(...),
-    description: Optional[str] = Form(None),
+    description: str | None = Form(None),  # noqa: ARG001
     files: list[UploadFile] = File(...)
 ):
     api_key = os.getenv("ELEVENLABS_API_KEY")

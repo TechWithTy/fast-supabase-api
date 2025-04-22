@@ -1,4 +1,4 @@
-from .auth import SupabaseAuthService
+from .functions.auth import SupabaseAuthService
 from .functions.database import SupabaseDatabaseService
 from .functions.edge_functions import SupabaseEdgeFunctionsService
 from .functions.realtime import SupabaseRealtimeService

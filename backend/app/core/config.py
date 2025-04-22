@@ -3,7 +3,6 @@ import secrets
 import warnings
 from typing import Annotated, Any, Literal
 
-from dotenv import load_dotenv
 from pydantic import (
     AnyUrl,
     BeforeValidator,
@@ -41,6 +40,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
     FRONTEND_HOST: str = "http://localhost:5173"
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
+    PROJECT_NAME: str = "Fast-Supabase-Api"
+    DOMAIN: str = "localhost.tiangolo.com"
+    STACK_NAME: str = "fast-supabase"
 
     BACKEND_CORS_ORIGINS: Annotated[
         list[AnyUrl] | str, BeforeValidator(parse_cors)
@@ -53,8 +55,33 @@ class Settings(BaseSettings):
             self.FRONTEND_HOST
         ]
 
-    PROJECT_NAME: str
     SENTRY_DSN: HttpUrl | None = None
+
+    # --- Email Config ---
+    SMTP_HOST: str | None = None
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
+    EMAILS_FROM_EMAIL: EmailStr | None = None
+    SMTP_TLS: bool = True
+    SMTP_SSL: bool = False
+    SMTP_PORT: int = 587
+    EMAILS_FROM_NAME: EmailStr | None = None
+    EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
+
+    @model_validator(mode="after")
+    def _set_default_emails_from(self) -> Self:
+        if not self.EMAILS_FROM_NAME:
+            self.EMAILS_FROM_NAME = self.PROJECT_NAME
+        return self
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def emails_enabled(self) -> bool:
+        return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
+
+    EMAIL_TEST_USER: EmailStr = "test@example.com"
+    FIRST_SUPERUSER: EmailStr
+    FIRST_SUPERUSER_PASSWORD: str
 
     # --- Database Config ---
     # Postgres (optional)
@@ -63,6 +90,7 @@ class Settings(BaseSettings):
     POSTGRES_USER: str | None = None
     POSTGRES_PASSWORD: str | None = None
     POSTGRES_DB: str | None = None
+    DATABASE_URL: str | None = None
 
     # Supabase (optional)
     SUPABASE_URL: str | None = None
@@ -98,31 +126,35 @@ class Settings(BaseSettings):
                 "No database backend configured. Set either Postgres or Supabase environment variables."
             )
 
-    SMTP_TLS: bool = True
-    SMTP_SSL: bool = False
-    SMTP_PORT: int = 587
-    SMTP_HOST: str | None = None
-    SMTP_USER: str | None = None
-    SMTP_PASSWORD: str | None = None
-    EMAILS_FROM_EMAIL: EmailStr | None = None
-    EMAILS_FROM_NAME: EmailStr | None = None
+    # --- Supabase Test Settings ---
+    TEST_USER_EMAIL: EmailStr | None = None
+    TEST_USER_PASSWORD: str | None = None
+    TEST_BUCKET_NAME: str | None = None
+    TEST_TABLE_NAME: str | None = None
+    TEST_EDGE_FUNCTION: str | None = None
+    SKIP_USER_CREATION: bool = True
 
-    @model_validator(mode="after")
-    def _set_default_emails_from(self) -> Self:
-        if not self.EMAILS_FROM_NAME:
-            self.EMAILS_FROM_NAME = self.PROJECT_NAME
-        return self
+    # --- Redis & Celery ---
+    REDIS_URL: str | None = None
+    CELERY_BROKER_URL: str | None = None
+    CELERY_RESULT_BACKEND: str | None = None
 
-    EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
+    # --- Docker Image ---
+    DOCKER_IMAGE_BACKEND: str | None = None
 
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def emails_enabled(self) -> bool:
-        return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
+    # --- Rate Limiting ---
+    DEFAULT_THROTTLE_RATES_ANON: str = "100/day"
+    DEFAULT_THROTTLE_RATES_USER: str = "1000/day"
+    DEFAULT_THROTTLE_RATES_PREMIUM: str = "5000/day"
 
-    EMAIL_TEST_USER: EmailStr = "test@example.com"
-    FIRST_SUPERUSER: EmailStr
-    FIRST_SUPERUSER_PASSWORD: str
+    # --- CORS ---
+    CORS_ALLOWED_ORIGINS: str | None = None
+
+    # --- ElevenLabs API ---
+    ELEVENLABS_API_KEY: str | None = None
+    ELEVENLABS_ORG_ID: str | None = None
+    ELEVENLABS_PROJECT_ID: str | None = None
+    ELEVENLABS_VOICE_ID: str | None = None
 
     def _check_default_secret(self, var_name: str, value: str | None) -> None:
         if value == "changethis":

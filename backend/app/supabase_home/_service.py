@@ -1,10 +1,11 @@
 import json
 import logging
-import os
 from typing import Any
 
 import requests
 from fastapi import HTTPException
+
+from app.core.config import settings
 
 from ..supabase_home.client import get_supabase_client
 
@@ -41,9 +42,9 @@ class SupabaseService:
     """
 
     def __init__(self):
-        self.base_url = os.getenv("SUPABASE_URL")
-        self.anon_key = os.getenv("SUPABASE_ANON_KEY")
-        self.service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        self.base_url = settings.SUPABASE_URL
+        self.anon_key = settings.SUPABASE_ANON_KEY
+        self.service_role_key = settings.SUPABASE_SERVICE_ROLE_KEY
         self.raw = get_supabase_client(
             url=self.base_url, key=self.anon_key, service_key=self.service_role_key
         )
@@ -51,16 +52,16 @@ class SupabaseService:
         self._configure_service()
 
         if not self.base_url:
-            logger.error("SUPABASE_URL is not set in environment variables")
-            raise ValueError("SUPABASE_URL is not set in environment variables")
+            logger.error("SUPABASE_URL is not set in settings")
+            raise ValueError("SUPABASE_URL is not set in settings")
 
         if not self.anon_key:
-            logger.error("SUPABASE_ANON_KEY is not set in environment variables")
-            raise ValueError("SUPABASE_ANON_KEY is not set in environment variables")
+            logger.error("SUPABASE_ANON_KEY is not set in settings")
+            raise ValueError("SUPABASE_ANON_KEY is not set in settings")
 
         if not self.service_role_key:
             logger.warning(
-                "SUPABASE_SERVICE_ROLE_KEY is not set in environment variables. Admin operations will not work."
+                "SUPABASE_SERVICE_ROLE_KEY is not set in settings. Admin operations will not work."
             )
 
     def _get_headers(

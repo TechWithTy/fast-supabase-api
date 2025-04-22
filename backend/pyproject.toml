@@ -27,6 +27,7 @@ dependencies = [
     "prometheus-fastapi-instrumentator>=7.1.0",
     "elevenlabs==1.56.0",
     "stripe==8.0.0",
+    "supabase>=2.15.0",
 ]
 
 [tool.uv]

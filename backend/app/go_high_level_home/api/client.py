@@ -1,34 +1,36 @@
-from typing import Dict, Any
-import os
+from typing import Any
+
 import httpx
-import logging
+
+from app.core.config import settings
+
 
 class GoHighLevelClient:
     """
     Client for interacting with the Go High Level API.
     """
 
-    def __init__(self):
-        self.api_base_url = "https://services.leadconnectorhq.com"
+    def __init__(self, api_key: str | None = None, api_base_url: str | None = None):
+        self.api_key = api_key or settings.GHL_API_KEY
+        self.api_base_url = api_base_url or settings.GHL_API_BASE_URL
         self.api_version = "2021-07-28"
-        self.api_key = os.getenv('GO_HIGH_LEVEL_API_KEY')
 
         if not self.api_key:
-            raise ValueError("GO_HIGH_LEVEL_API_KEY environment variable is not set")
+            raise ValueError("GO_HIGH_LEVEL_API_KEY environment variable or GHL_API_KEY setting is not set")
 
-    def get_headers(self) -> Dict[str, str]:
+    def get_headers(self) -> dict[str, str]:
         """
         Get the headers required for API requests.
 
         Returns:
-            Dict[str, str]: Dictionary containing Authorization and Version headers
+            dict[str, str]: Dictionary containing Authorization and Version headers
         """
         return {
             "Authorization": f"Bearer {self.api_key}",
             "Version": self.api_version
         }
 
-    async def make_request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
+    async def make_request(self, method: str, endpoint: str, **kwargs) -> dict[str, Any]:
         """
         Make an HTTP request to the Go High Level API.
 

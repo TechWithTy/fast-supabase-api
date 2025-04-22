@@ -1,8 +1,8 @@
-from django.conf import settings
 import logging
 import sys
-from backend.utils.sensitive import load_environment_files
-import os
+
+from app.core.config import settings
+from app.db_utils.sensitive import load_environment_files
 
 # Load environment variables
 load_environment_files()
@@ -17,8 +17,8 @@ for path in sys.path:
 # Now import from the actual supabase-py library
 
 try:
-        # Try alternative import path (depending on how the package was installed)
-    from supabase import create_client, Client
+    # Try alternative import path (depending on how the package was installed)
+    from supabase import Client, create_client
 except ImportError:
     raise ImportError(
         "Could not import 'create_client' from either 'supabase_py' or 'supabase'. "
@@ -52,18 +52,18 @@ def initialize_supabase() -> Client:
         return _supabase_client
 
     # Check for required environment variables
-    supabase_url = os.getenv("SUPABASE_URL")
-    supabase_key = os.getenv("SUPABASE_ANON_KEY")
+    supabase_url = settings.SUPABASE_URL
+    supabase_key = settings.SUPABASE_ANON_KEY
 
     print(f"Supabase URL: {supabase_url}")  # Added print statement to show the URL
 
     if not supabase_url:
-        error_msg = "SUPABASE_URL is not set in environment variables"
+        error_msg = "SUPABASE_URL is not set in settings"
         logger.error(error_msg)
         raise ValueError(error_msg)
 
     if not supabase_key:
-        error_msg = "SUPABASE_ANON_KEY is not set in environment variables"
+        error_msg = "SUPABASE_ANON_KEY is not set in settings"
         logger.error(error_msg)
         raise ValueError(error_msg)
 

@@ -2,6 +2,7 @@ import os
 import sys
 from pathlib import Path
 from urllib.parse import urlparse
+
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 from utils.sensitive import load_environment_files

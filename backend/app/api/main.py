@@ -1,27 +1,28 @@
 from fastapi import APIRouter
 
-from app.api.routes import items, login, private, users, utils
-from app.core.config import settings
+# ElevenLabs routers
+from app.api.based_routes.eleven_labs.voice import router as elevenlabs_voice_router
+
+# OSINT & MLS routers
+from app.api.based_routes.osint.email import router as osint_email_router
+from app.api.based_routes.osint.mls import router as mls_router
+from app.api.based_routes.osint.phone import router as osint_phone_router
 
 # VAPI routers
 from app.api.based_routes.vapi.assistants import router as vapi_assistants_router
 from app.api.based_routes.vapi.calls import router as vapi_calls_router
-from app.api.based_routes.vapi.webhooks import router as vapi_webhooks_router
 from app.api.based_routes.vapi.voice import router as vapi_voice_router
-
-# OSINT & MLS routers
-from app.api.based_routes.osint.email import router as osint_email_router
-from app.api.based_routes.osint.phone import router as osint_phone_router
-from app.api.based_routes.osint.mls import router as mls_router
-
-# ElevenLabs routers
-from app.api.based_routes.eleven_labs.voice import router as elevenlabs_voice_router
+from app.api.based_routes.vapi.webhooks import router as vapi_webhooks_router
+from app.api.routes import items, login, private, users, utils
+from app.api.routes.ghl.apply_tag import router as ghl_apply_tag_router
 
 # GHL routers (assuming your GHL endpoints are in these files)
 from app.api.routes.ghl.create_subaccount import router as ghl_create_subaccount_router
+from app.api.routes.ghl.schedule_appointment import (
+    router as ghl_schedule_appointment_router,
+)
 from app.api.routes.ghl.upload_contact import router as ghl_upload_contact_router
-from app.api.routes.ghl.apply_tag import router as ghl_apply_tag_router
-from app.api.routes.ghl.schedule_appointment import router as ghl_schedule_appointment_router
+from app.core.config import settings
 
 api_router = APIRouter()
 api_router.include_router(login.router)
