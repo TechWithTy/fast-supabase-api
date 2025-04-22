@@ -18,6 +18,3 @@ def delete_assistant(assistant_id: str) -> Optional[dict]:
     except Exception as e:
         print(f"Error deleting assistant: {e}")
         return None
-
-client = get_client()
-response = delete_assistant("id")

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, FastAPI
+from fastapi_limiter.depends import RateLimiter
 
 from app.supabase_home.client import SupabaseClient
 from app.supabase_home.functions.auth import SupabaseAuthService
@@ -41,16 +42,6 @@ async def storage_endpoint(
     pass
 
 
-@app.get("/edge-functions")
-async def edge_functions_endpoint(
-    edge_functions_service: SupabaseEdgeFunctionsService = Depends(
-        SupabaseClient.get_edge_functions_service
-    ),
-):
-    # Implement edge functions logic here
-    pass
-
-
 @app.get("/realtime")
 async def realtime_endpoint(
     realtime_service: SupabaseRealtimeService = Depends(
@@ -59,3 +50,12 @@ async def realtime_endpoint(
 ):
     # Implement realtime logic here
     pass
+
+
+@router.get("/edge-functions", dependencies=[Depends(RateLimiter(times=10, seconds=60))])
+async def edge_functions_endpoint():
+    """
+    Public endpoint for testing rate limiting and security headers.
+    Returns a simple JSON response.
+    """
+    return {"status": "ok"}

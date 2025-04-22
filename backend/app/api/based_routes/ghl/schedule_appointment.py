@@ -1,9 +1,10 @@
 import logging
 from typing import Any
 
-from backend.app.go_high_level_home.api.business.create import create_appointment
-from fastapi import HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
+from app.go_high_level_home.api.business.create import create_appointment
 
 
 class AppointmentScheduleRequest(BaseModel):
@@ -21,3 +22,11 @@ async def schedule_appointment_logic(req: AppointmentScheduleRequest):
     except Exception as e:
         logging.error(f"Error scheduling appointment: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+
+
+router = APIRouter(tags=["GHL Appointment"])
+
+
+@router.post("/schedule-appointment")
+async def schedule_appointment_endpoint(req: AppointmentScheduleRequest):
+    return await schedule_appointment_logic(req)

@@ -1,8 +1,7 @@
-from typing import Optional
 from ..client import get_client
 
 
-def update_call(call_id: str) -> Optional[dict]:
+def update_call(call_id: str) -> dict | None:
     """
     Update a call using the Vapi SDK.
 

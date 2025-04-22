@@ -1,8 +1,7 @@
-from typing import Optional
 from ..client import get_client
 
 
-def delete_call(call_id: str) -> Optional[dict]:
+def delete_call(call_id: str) -> dict | None:
     """
     Delete a call using the Vapi SDK.
 
@@ -19,6 +18,3 @@ def delete_call(call_id: str) -> Optional[dict]:
         print(f"Error deleting call: {e}")
         return None
 
-# Example usage:
-client = get_client()
-delete_call("id")

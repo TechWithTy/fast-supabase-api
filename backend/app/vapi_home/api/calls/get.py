@@ -1,8 +1,7 @@
-from typing import Optional
 from ..client import get_client
 
 
-def get_call(call_id: str) -> Optional[dict]:
+def get_call(call_id: str) -> dict | None:
     """
     Get a call using the Vapi SDK.
 
@@ -18,5 +17,3 @@ def get_call(call_id: str) -> Optional[dict]:
     except Exception as e:
         print(f"Error getting call: {e}")
         return None
-
-get_call(call_id="id")

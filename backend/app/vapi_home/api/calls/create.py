@@ -1,8 +1,7 @@
-from typing import Optional
 from ..client import get_client
 
 
-def create_call() -> Optional[dict]:
+def create_call() -> dict | None:
     """
     Create a new call using the Vapi SDK.
 

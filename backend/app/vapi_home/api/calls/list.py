@@ -1,8 +1,7 @@
-from typing import Optional
 from ..client import get_client
 
 
-def list_calls() -> Optional[dict]:
+def list_calls() -> dict | None:
     """
     List all calls using the Vapi SDK.
 

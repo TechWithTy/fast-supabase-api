@@ -1,8 +1,9 @@
 import logging
 
-from backend.app.go_high_level_home.api.sub_accounts.tags.create import create_tag
-from fastapi import HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
+from app.go_high_level_home.api.sub_accounts.tags.create import create_tag
 
 
 class TagApplyRequest(BaseModel):
@@ -18,3 +19,11 @@ async def apply_tag_logic(req: TagApplyRequest):
     except Exception as e:
         logging.error(f"Error applying tag: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+
+
+router = APIRouter(tags=["GHL Tag"])
+
+
+@router.post("/apply-tag")
+async def apply_tag_endpoint(req: TagApplyRequest):
+    return await apply_tag_logic(req)

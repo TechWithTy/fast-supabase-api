@@ -28,6 +28,13 @@ dependencies = [
     "elevenlabs==1.56.0",
     "stripe==8.0.0",
     "supabase>=2.15.0",
+    "fastapi-limiter>=0.1.6",
+    "pandas>=2.2.3",
+    "homeharvest>=0.4.3",
+    "phonenumbers>=9.0.3",
+    "bs4>=0.0.2",
+    "vapi-server-sdk>=1.4.2",
+    "anyio>=4.6.0",
 ]
 
 [tool.uv]
@@ -76,3 +83,6 @@ ignore = [
 [tool.ruff.lint.pyupgrade]
 # Preserve types, even if a file imports `from __future__ import annotations`.
 keep-runtime-typing = true
+
+[tool.pytest.ini_options]
+anyio_backend = "asyncio"

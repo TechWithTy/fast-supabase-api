@@ -1,22 +1,27 @@
-from typing import Optional
 from ..client import get_client
+from typing import Any
 
-def create_assistant(payload: dict) -> Optional[dict]:
+
+def create_assistant(payload: dict[str, Any]) -> dict[str, Any] | None:
     """
-    Create an assistant using the Vapi SDK.
+    Create a Vapi assistant using the Vapi SDK client.
 
     Args:
-        payload (dict): The assistant configuration.
+        payload (dict): The assistant configuration as per Vapi docs.
 
     Returns:
-        Optional[dict]: The response from the API if successful, None otherwise.
+        dict or None: The created assistant response or None if error.
     """
     try:
         client = get_client()
+        # Defensive: check client has 'assistants' and 'create'
+        if not hasattr(client, 'assistants') or not hasattr(client.assistants, 'create'):
+            raise AttributeError("Vapi client does not support assistants.create(). Check SDK version.")
         return client.assistants.create(**payload)
     except Exception as e:
         print(f"Error creating assistant: {e}")
         return None
+
 
 example_payload = {
     "transcriber": {
@@ -161,5 +166,5 @@ example_payload = {
 }
 
 # Example usage:
-response = create_assistant(example_payload)
-print(response)
+# response = create_assistant(example_payload)
+# print(response)
