@@ -6,7 +6,6 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 # Add HomeHarvest to path and import scrape_property
-sys.path.append("../../osint/HomeHarvest/homeharvest")
 from homeharvest import scrape_property
 
 router = APIRouter(prefix="/mls", tags=["MLS Property Info"])

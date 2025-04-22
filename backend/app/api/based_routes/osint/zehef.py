@@ -1,6 +1,6 @@
 import asyncio
-import sys
 import os
+import sys
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -10,21 +10,26 @@ from pydantic import BaseModel
 zehef_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../osint/Zehef"))
 if zehef_path not in sys.path:
     sys.path.append(zehef_path)
+    
 from lib.cli import parser as zehef_parser
 
-router = APIRouter(prefix="/osint", tags=["OSINT Email"])
+router = APIRouter(prefix="/osint/zehef", tags=["Zehef OSINT Email"])
 
-class EmailToPhoneRequest(BaseModel):
+class ZehefEmailRequest(BaseModel):
     email: str
-    quiet_mode: bool = False
 
 @router.post("/email", response_model=dict[str, Any])
-async def email_to_phone_endpoint(req: EmailToPhoneRequest):
+async def zehef_email_lookup(req: ZehefEmailRequest):
     """
-    Endpoint to lookup information based on an email address using Zehef.
+    Endpoint to lookup public OSINT information on an email address using Zehef.
+    Zehef features include:
+        - Checking if the email is in a paste (Pastebin)
+        - Finding leaks with HudsonRock
+        - Checking social media accounts (Instagram, Spotify, Deezer, Adobe, X, etc.)
+        - Generating email combinations
+    Zehef is licensed under GPL v3 and requires Python 3.10+.
     """
     try:
-        # Zehef expects to be run as a CLI, but we can call its parser directly
         import contextlib
         import io
         output = io.StringIO()
