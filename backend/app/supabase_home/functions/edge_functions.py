@@ -1,6 +1,6 @@
 from typing import Any
 
-from ...supabase_home.client import get_supabase_client
+from app.supabase_home import get_supabase_client
 from .._service import SupabaseService
 
 

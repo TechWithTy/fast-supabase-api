@@ -1,4 +1,4 @@
-from typing import Any, dict, list
+from typing import Any
 
 from .._service import SupabaseService
 

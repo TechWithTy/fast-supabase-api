@@ -1,6 +1,6 @@
 from typing import Any
 
-from ...supabase_home.client import get_supabase_client
+from app.supabase_home import get_supabase_client
 from .._service import SupabaseService
 
 
@@ -14,7 +14,7 @@ class SupabaseDatabaseService(SupabaseService):
     def _configure_service(self):
         """Initialize auth-specific client"""
         self.auth = self.raw.table  # Gets the GoTrue client
-        self.rpc = self.raw.rpc()  # For stored procedures
+        self.rpc = self.raw.rpc     # Assign the method, not the result of calling it
     
     def fetch_data(
         self,

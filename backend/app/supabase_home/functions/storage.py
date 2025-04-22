@@ -16,8 +16,6 @@ class SupabaseStorageService(SupabaseService):
     def _configure_service(self):
         """Initialize storage clients"""
         self.storage = self.raw.storage  # Main storage client
-        self.bucket_api = self.storage.BucketAPI()  # For bucket operations
-        self.file_api = self.storage.FileAPI()  # For file operations
 
     def create_bucket(
         self,

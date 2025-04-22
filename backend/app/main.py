@@ -1,12 +1,11 @@
+import redis.asyncio as aioredis
 import sentry_sdk
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
-from starlette.middleware.cors import CORSMiddleware
 from fastapi_limiter import FastAPILimiter
-from fastapi_limiter.depends import RateLimiter
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import Response
-import redis.asyncio as aioredis
 
 from app.api.main import api_router
 from app.core.config import settings

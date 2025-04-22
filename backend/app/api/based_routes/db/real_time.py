@@ -1,10 +1,12 @@
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
-from ...supabase_home.client import SupabaseClient
-from ...supabase_home.functions.realtime import SupabaseRealtimeService
+from app.supabase_home.client import SupabaseClient
+from app.supabase_home.functions.realtime import SupabaseRealtimeService
+
+router = APIRouter(tags=["Supabase DB"])
 
 app = FastAPI(
     title="SupabaseRealtimeAPI",

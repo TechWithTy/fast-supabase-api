@@ -1,12 +1,13 @@
 from typing import Any
 
-from backend.app.vapi_home.api.assistants.create import create_assistant
-from backend.app.vapi_home.api.assistants.delete import delete_assistant
-from backend.app.vapi_home.api.assistants.get import get_assistant
-from backend.app.vapi_home.api.assistants.list import list_assistants
-from backend.app.vapi_home.api.assistants.update import update_assistant
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
+from app.vapi_home.api.assistants.create import create_assistant
+from app.vapi_home.api.assistants.delete import delete_assistant
+from app.vapi_home.api.assistants.get import get_assistant
+from app.vapi_home.api.assistants.list import list_assistants
+from app.vapi_home.api.assistants.update import update_assistant
 
 router = APIRouter(prefix="/vapi/assistants", tags=["VAPI Assistants"])
 

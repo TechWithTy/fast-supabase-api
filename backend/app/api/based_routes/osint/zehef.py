@@ -7,16 +7,20 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 # Ensure Zehef is on sys.path for imports (absolute path for reliability)
-zehef_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../osint/Zehef"))
+zehef_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "../../osint/Zehef")
+)
 if zehef_path not in sys.path:
     sys.path.append(zehef_path)
-    
-from lib.cli import parser as zehef_parser
+
+from app.osint.Zehef.lib.cli import parser as zehef_parser  # noqa: E402
 
 router = APIRouter(prefix="/osint/zehef", tags=["Zehef OSINT Email"])
 
+
 class ZehefEmailRequest(BaseModel):
     email: str
+
 
 @router.post("/email", response_model=dict[str, Any])
 async def zehef_email_lookup(req: ZehefEmailRequest):
@@ -32,6 +36,7 @@ async def zehef_email_lookup(req: ZehefEmailRequest):
     try:
         import contextlib
         import io
+
         output = io.StringIO()
         sys.argv = ["zehef", req.email]
         with contextlib.redirect_stdout(output):

@@ -1,9 +1,10 @@
-from backend.app.vapi_home.api.calls.create import create_call
-from backend.app.vapi_home.api.calls.delete import delete_call
-from backend.app.vapi_home.api.calls.get import get_call
-from backend.app.vapi_home.api.calls.list import list_calls
-from backend.app.vapi_home.api.calls.update import update_call
 from fastapi import APIRouter, HTTPException
+
+from app.vapi_home.api.calls.create import create_call
+from app.vapi_home.api.calls.delete import delete_call
+from app.vapi_home.api.calls.get import get_call
+from app.vapi_home.api.calls.list import list_calls
+from app.vapi_home.api.calls.update import update_call
 
 router = APIRouter(prefix="/vapi/calls", tags=["VAPI Calls"])
 

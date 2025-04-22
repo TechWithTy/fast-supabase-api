@@ -7,8 +7,6 @@ from fastapi import HTTPException
 
 from app.core.config import settings
 
-from ..supabase_home.client import get_supabase_client
-
 logger = logging.getLogger("apps.supabase_home")
 
 
@@ -42,12 +40,12 @@ class SupabaseService:
     """
 
     def __init__(self):
+        from app.supabase_home import get_supabase_client
         self.base_url = settings.SUPABASE_URL
         self.anon_key = settings.SUPABASE_ANON_KEY
         self.service_role_key = settings.SUPABASE_SERVICE_ROLE_KEY
-        self.raw = get_supabase_client(
-            url=self.base_url, key=self.anon_key, service_key=self.service_role_key
-        )
+        self.raw = get_supabase_client()
+
 
         self._configure_service()
 

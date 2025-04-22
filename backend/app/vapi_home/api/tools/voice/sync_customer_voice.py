@@ -1,6 +1,6 @@
-import os
-from typing import List, Dict, Any
-from . import get_client  # Importing the method to get the API client
+from typing import Any
+
+from app.vapi_home.api.client import get_client  # Correct import for the API client
 
 
 def sync_customer_voice_with_vapi(customer_id: str, voice_id: str) -> None:
@@ -17,21 +17,23 @@ def sync_customer_voice_with_vapi(customer_id: str, voice_id: str) -> None:
         # Get the VAPI client
         client = get_client()
         # Sync the cloned voice with VAPI
-        client.sync_voice(customer_id, voice_id)  # Assuming sync_voice is a method in the SDK
+        client.sync_voice(
+            customer_id, voice_id
+        )  # Assuming sync_voice is a method in the SDK
         print(f"Successfully synced voice {voice_id} for customer {customer_id}")
     except Exception as error:
         print(f"Error syncing voice {voice_id} for customer {customer_id}: {error}")
-        raise Exception("Failed to sync voice with VAPI") from error
+        raise
 
 
-def get_customer_voices(customer_id: str) -> List[Dict[str, Any]]:
+def get_customer_voices(customer_id: str) -> list[dict[str, Any]]:
     """Fetch only the voices for the authenticated customer from VAPI.
 
     Args:
         customer_id (str): The unique ID of the customer.
 
     Returns:
-        List[Dict[str, Any]]: List of voice data for that customer.
+        list[dict[str, Any]]: List of voice objects for the customer.
 
     Raises:
         Exception: If fetching voices fails.
@@ -40,7 +42,9 @@ def get_customer_voices(customer_id: str) -> List[Dict[str, Any]]:
         # Get the VAPI client
         client = get_client()
         # Fetch voices for this customer from VAPI
-        voices = client.fetch_customer_voices(customer_id)  # Assuming fetch_customer_voices is a method in the SDK
+        voices = client.fetch_customer_voices(
+            customer_id
+        )  # Assuming fetch_customer_voices is a method in the SDK
         print(f"Fetched {len(voices)} voices for customer {customer_id}")
         return voices
     except Exception as error:

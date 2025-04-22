@@ -1,13 +1,12 @@
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 
-from ...supabase_home.auth import SupabaseAuthService
-from ...supabase_home.client import SupabaseClient
+from app.supabase_home.client import SupabaseClient
+from app.supabase_home.functions.auth import SupabaseAuthService
 
-app = FastAPI(title="Supabase Auth API", description="API for Supabase Authentication")
-
+router = APIRouter(tags=["Supabase Auth"])
 
 
 class UserCreate(BaseModel):
@@ -101,13 +100,11 @@ def handle_supabase_error(func):
 
 
 # Endpoints
-@app.post("/auth/users", response_model=dict[str, Any])
+@router.post("/auth/users", response_model=dict[str, Any])
 @handle_supabase_error
 async def create_user(
     user: UserCreate,
-    auth_service: SupabaseAuthService = Depends(
-        SupabaseClient.SupabaseClient.get_auth_service
-    ),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Create a new user with email and password"""
     return auth_service.create_user(
@@ -115,7 +112,7 @@ async def create_user(
     )
 
 
-@app.post("/auth/anonymous", response_model=dict[str, Any])
+@router.post("/auth/anonymous", response_model=dict[str, Any])
 @handle_supabase_error
 async def create_anonymous_user(
     auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
@@ -124,7 +121,7 @@ async def create_anonymous_user(
     return auth_service.create_anonymous_user()
 
 
-@app.post("/auth/signin", response_model=dict[str, Any])
+@router.post("/auth/signin", response_model=dict[str, Any])
 @handle_supabase_error
 async def sign_in_with_email(
     user: UserSignIn,
@@ -134,7 +131,7 @@ async def sign_in_with_email(
     return auth_service.sign_in_with_email(email=user.email, password=user.password)
 
 
-@app.post("/auth/signin/otp", response_model=dict[str, Any])
+@router.post("/auth/signin/otp", response_model=dict[str, Any])
 @handle_supabase_error
 async def sign_in_with_otp(
     user: UserOTP,
@@ -144,7 +141,7 @@ async def sign_in_with_otp(
     return auth_service.sign_in_with_otp(email=user.email)
 
 
-@app.post("/auth/verify", response_model=dict[str, Any])
+@router.post("/auth/verify", response_model=dict[str, Any])
 @handle_supabase_error
 async def verify_otp(
     verify_data: OTPVerify,
@@ -156,7 +153,7 @@ async def verify_otp(
     )
 
 
-@app.post("/auth/oauth", response_model=dict[str, Any])
+@router.post("/auth/oauth", response_model=dict[str, Any])
 @handle_supabase_error
 async def sign_in_with_oauth(
     oauth_data: OAuth,
@@ -168,7 +165,7 @@ async def sign_in_with_oauth(
     )
 
 
-@app.post("/auth/sso", response_model=dict[str, Any])
+@router.post("/auth/sso", response_model=dict[str, Any])
 @handle_supabase_error
 async def sign_in_with_sso(
     sso_data: SSO,
@@ -180,7 +177,7 @@ async def sign_in_with_sso(
     )
 
 
-@app.post("/auth/signout", response_model=dict[str, Any])
+@router.post("/auth/signout", response_model=dict[str, Any])
 @handle_supabase_error
 async def sign_out(
     auth_token: str,
@@ -190,7 +187,7 @@ async def sign_out(
     return auth_service.sign_out(auth_token=auth_token)
 
 
-@app.post("/auth/reset-password", response_model=dict[str, Any])
+@router.post("/auth/reset-password", response_model=dict[str, Any])
 @handle_supabase_error
 async def reset_password(
     reset_data: PasswordReset,
@@ -202,7 +199,7 @@ async def reset_password(
     )
 
 
-@app.get("/auth/session", response_model=dict[str, Any])
+@router.get("/auth/session", response_model=dict[str, Any])
 @handle_supabase_error
 async def get_session(
     auth_token: str,
@@ -212,7 +209,7 @@ async def get_session(
     return auth_service.get_session(auth_token=auth_token)
 
 
-@app.post("/auth/refresh", response_model=dict[str, Any])
+@router.post("/auth/refresh", response_model=dict[str, Any])
 @handle_supabase_error
 async def refresh_session(
     refresh_data: RefreshToken,
@@ -222,7 +219,7 @@ async def refresh_session(
     return auth_service.refresh_session(refresh_token=refresh_data.refresh_token)
 
 
-@app.get("/auth/users/{user_id}", response_model=dict[str, Any])
+@router.get("/auth/users/{user_id}", response_model=dict[str, Any])
 @handle_supabase_error
 async def get_user(
     user_id: str,
@@ -232,7 +229,7 @@ async def get_user(
     return auth_service.get_user(user_id=user_id)
 
 
-@app.put("/auth/users/{user_id}", response_model=dict[str, Any])
+@router.put("/auth/users/{user_id}", response_model=dict[str, Any])
 @handle_supabase_error
 async def update_user(
     user_id: str,
@@ -243,7 +240,7 @@ async def update_user(
     return auth_service.update_user(user_id=user_id, user_data=user_data.user_data)
 
 
-@app.get("/auth/users/{user_id}/identities", response_model=list[dict[str, Any]])
+@router.get("/auth/users/{user_id}/identities", response_model=list[dict[str, Any]])
 @handle_supabase_error
 async def get_user_identities(
     user_id: str,
@@ -253,7 +250,7 @@ async def get_user_identities(
     return auth_service.get_user_identities(user_id=user_id)
 
 
-@app.post("/auth/identities/link", response_model=dict[str, Any])
+@router.post("/auth/identities/link", response_model=dict[str, Any])
 @handle_supabase_error
 async def link_identity(
     auth_token: str,
@@ -268,7 +265,7 @@ async def link_identity(
     )
 
 
-@app.delete("/auth/identities/{identity_id}", response_model=dict[str, Any])
+@router.delete("/auth/identities/{identity_id}", response_model=dict[str, Any])
 @handle_supabase_error
 async def unlink_identity(
     auth_token: str,
@@ -279,7 +276,7 @@ async def unlink_identity(
     return auth_service.unlink_identity(auth_token=auth_token, identity_id=identity_id)
 
 
-@app.put("/auth/session/data", response_model=dict[str, Any])
+@router.put("/auth/session/data", response_model=dict[str, Any])
 @handle_supabase_error
 async def set_session_data(
     auth_token: str,
@@ -290,7 +287,7 @@ async def set_session_data(
     return auth_service.set_session_data(auth_token=auth_token, data=session_data.data)
 
 
-@app.get("/auth/token/{token}", response_model=dict[str, Any])
+@router.get("/auth/token/{token}", response_model=dict[str, Any])
 @handle_supabase_error
 async def get_user_by_token(
     token: str,
@@ -300,7 +297,7 @@ async def get_user_by_token(
     return auth_service.get_user_by_token(token=token)
 
 
-@app.post("/auth/mfa/enroll", response_model=dict[str, Any])
+@router.post("/auth/mfa/enroll", response_model=dict[str, Any])
 @handle_supabase_error
 async def enroll_mfa_factor(
     auth_token: str,
@@ -313,7 +310,7 @@ async def enroll_mfa_factor(
     )
 
 
-@app.post("/auth/mfa/challenge", response_model=dict[str, Any])
+@router.post("/auth/mfa/challenge", response_model=dict[str, Any])
 @handle_supabase_error
 async def create_mfa_challenge(
     auth_token: str,
@@ -326,7 +323,7 @@ async def create_mfa_challenge(
     )
 
 
-@app.post("/auth/mfa/verify", response_model=dict[str, Any])
+@router.post("/auth/mfa/verify", response_model=dict[str, Any])
 @handle_supabase_error
 async def verify_mfa_challenge(
     auth_token: str,
@@ -342,7 +339,7 @@ async def verify_mfa_challenge(
     )
 
 
-@app.delete("/auth/mfa/{factor_id}", response_model=dict[str, Any])
+@router.delete("/auth/mfa/{factor_id}", response_model=dict[str, Any])
 @handle_supabase_error
 async def unenroll_mfa_factor(
     auth_token: str,
@@ -353,7 +350,7 @@ async def unenroll_mfa_factor(
     return auth_service.unenroll_mfa_factor(auth_token=auth_token, factor_id=factor_id)
 
 
-@app.get("/auth/admin/users", response_model=dict[str, Any])
+@router.get("/auth/admin/users", response_model=dict[str, Any])
 @handle_supabase_error
 async def list_users(
     page: int = 1,
@@ -364,7 +361,7 @@ async def list_users(
     return auth_service.list_users(page=page, per_page=per_page)
 
 
-@app.post("/auth/admin/users", response_model=dict[str, Any])
+@router.post("/auth/admin/users", response_model=dict[str, Any])
 @handle_supabase_error
 async def admin_create_user(
     user: UserCreate,

@@ -3,7 +3,7 @@ from .functions.database import SupabaseDatabaseService
 from .functions.edge_functions import SupabaseEdgeFunctionsService
 from .functions.realtime import SupabaseRealtimeService
 from .functions.storage import SupabaseStorageService
-from .init import get_supabase_client
+from app.supabase_home import get_supabase_client
 
 
 class SupabaseClient:

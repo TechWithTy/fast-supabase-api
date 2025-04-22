@@ -1,10 +1,11 @@
 from typing import Any
 
-from backend.app.vapi_home.api.tools.voice.sync_customer_voice import (
-    sync_customer_voice_with_vapi,
-)
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
+from app.vapi_home.api.tools.voice.sync_customer_voice import (
+    sync_customer_voice_with_vapi,
+)
 
 router = APIRouter(prefix="/vapi/voice", tags=["VAPI Voice Management"])
 

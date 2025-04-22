@@ -7,12 +7,14 @@ from pydantic import BaseModel
 
 # Add Phunter path and import phunter_service
 sys.path.append("../../osint/Phunter")
-from backend.app.osint.Phunter.phunter_service import phunter_service
+from app.osint.Phunter.phunter_service import phunter_service
 
 router = APIRouter(prefix="/osint", tags=["OSINT Phone"])
 
+
 class PhoneOSINTRequest(BaseModel):
     phone_numbers: list[str]
+
 
 @router.post("/phone", response_model=Any)
 async def phone_osint_endpoint(req: PhoneOSINTRequest):
