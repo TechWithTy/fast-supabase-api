@@ -1,12 +1,18 @@
 [submodule "backend/app/osint/Phunter"]
 	path = backend/app/osint/Phunter
 	url = https://github.com/TechWithTy/Phunter.git
-[submodule "backend/app/osint/theHarvester"]
-	path = backend/app/osint/theHarvester
-	url = https://github.com/TechWithTy/theHarvester.git
 [submodule "backend/app/osint/Zehef"]
 	path = backend/app/osint/Zehef
 	url = https://github.com/TechWithTy/Zehef.git
 [submodule "backend/app/osint/HomeHarvest"]
 	path = backend/app/osint/HomeHarvest
 	url = https://github.com/TechWithTy/HomeHarvest.git
+[submodule "backend/app/osint/backend/app/osint/HomeHarvest"]
+	path = backend/app/osint/backend/app/osint/HomeHarvest
+	url = https://github.com/TechWithTy/HomeHarvest.git
+[submodule "backend/app/osint/backend/app/osint/Phunter"]
+	path = backend/app/osint/backend/app/osint/Phunter
+	url = https://github.com/TechWithTy/Phunter.git
+[submodule "backend/app/osint/backend/app/osint/Zehef"]
+	path = backend/app/osint/backend/app/osint/Zehef
+	url = https://github.com/TechWithTy/Zehef.git
