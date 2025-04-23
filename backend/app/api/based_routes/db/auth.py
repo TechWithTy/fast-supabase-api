@@ -1,3 +1,4 @@
+import functools
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -5,6 +6,7 @@ from pydantic import BaseModel, EmailStr
 
 from app.supabase_home.client import SupabaseClient
 from app.supabase_home.functions.auth import SupabaseAuthService
+from app.api.deps import get_current_active_superuser
 
 router = APIRouter(tags=["Supabase Auth"])
 
@@ -78,6 +80,7 @@ class LinkIdentity(BaseModel):
 
 # Error handler for Supabase errors
 def handle_supabase_error(func):
+    @functools.wraps(func)
     async def wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
@@ -107,7 +110,7 @@ async def create_user(
     auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Create a new user with email and password"""
-    return auth_service.create_user(
+    return await auth_service.create_user(
         email=user.email, password=user.password, user_metadata=user.user_metadata
     )
 
@@ -115,40 +118,40 @@ async def create_user(
 @router.post("/auth/anonymous", response_model=dict[str, Any])
 @handle_supabase_error
 async def create_anonymous_user(
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Create an anonymous user"""
-    return auth_service.create_anonymous_user()
+    return await auth_service.create_anonymous_user()
 
 
 @router.post("/auth/signin", response_model=dict[str, Any])
 @handle_supabase_error
 async def sign_in_with_email(
     user: UserSignIn,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Sign in a user with email and password"""
-    return auth_service.sign_in_with_email(email=user.email, password=user.password)
+    return await auth_service.sign_in_with_email(email=user.email, password=user.password)
 
 
 @router.post("/auth/signin/otp", response_model=dict[str, Any])
 @handle_supabase_error
 async def sign_in_with_otp(
     user: UserOTP,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Send a one-time password to the user's email"""
-    return auth_service.sign_in_with_otp(email=user.email)
+    return await auth_service.sign_in_with_otp(email=user.email)
 
 
 @router.post("/auth/verify", response_model=dict[str, Any])
 @handle_supabase_error
 async def verify_otp(
     verify_data: OTPVerify,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Verify a one-time password and log in the user"""
-    return auth_service.verify_otp(
+    return await auth_service.verify_otp(
         email=verify_data.email, token=verify_data.token, type=verify_data.type
     )
 
@@ -157,10 +160,10 @@ async def verify_otp(
 @handle_supabase_error
 async def sign_in_with_oauth(
     oauth_data: OAuth,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Get the URL to redirect the user for OAuth sign-in"""
-    return auth_service.sign_in_with_oauth(
+    return await auth_service.sign_in_with_oauth(
         provider=oauth_data.provider, redirect_url=oauth_data.redirect_url
     )
 
@@ -169,10 +172,10 @@ async def sign_in_with_oauth(
 @handle_supabase_error
 async def sign_in_with_sso(
     sso_data: SSO,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Sign in a user through SSO with a domain"""
-    return auth_service.sign_in_with_sso(
+    return await auth_service.sign_in_with_sso(
         domain=sso_data.domain, redirect_url=sso_data.redirect_url
     )
 
@@ -181,20 +184,20 @@ async def sign_in_with_sso(
 @handle_supabase_error
 async def sign_out(
     auth_token: str,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Sign out a user"""
-    return auth_service.sign_out(auth_token=auth_token)
+    return await auth_service.sign_out(auth_token=auth_token)
 
 
 @router.post("/auth/reset-password", response_model=dict[str, Any])
 @handle_supabase_error
 async def reset_password(
     reset_data: PasswordReset,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Send a password reset email to the user"""
-    return auth_service.reset_password(
+    return await auth_service.reset_password(
         email=reset_data.email, redirect_url=reset_data.redirect_url
     )
 
@@ -203,30 +206,30 @@ async def reset_password(
 @handle_supabase_error
 async def get_session(
     auth_token: str,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Retrieve the user's session"""
-    return auth_service.get_session(auth_token=auth_token)
+    return await auth_service.get_session(auth_token=auth_token)
 
 
 @router.post("/auth/refresh", response_model=dict[str, Any])
 @handle_supabase_error
 async def refresh_session(
     refresh_data: RefreshToken,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Refresh the user's session with a refresh token"""
-    return auth_service.refresh_session(refresh_token=refresh_data.refresh_token)
+    return await auth_service.refresh_session(refresh_token=refresh_data.refresh_token)
 
 
 @router.get("/auth/users/{user_id}", response_model=dict[str, Any])
 @handle_supabase_error
 async def get_user(
     user_id: str,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Retrieve a user by ID (admin only)"""
-    return auth_service.get_user(user_id=user_id)
+    return await auth_service.get_user(user_id=user_id)
 
 
 @router.put("/auth/users/{user_id}", response_model=dict[str, Any])
@@ -234,20 +237,20 @@ async def get_user(
 async def update_user(
     user_id: str,
     user_data: UserUpdate,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Update a user's data (admin only)"""
-    return auth_service.update_user(user_id=user_id, user_data=user_data.user_data)
+    return await auth_service.update_user(user_id=user_id, user_data=user_data.user_data)
 
 
 @router.get("/auth/users/{user_id}/identities", response_model=list[dict[str, Any]])
 @handle_supabase_error
 async def get_user_identities(
     user_id: str,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Retrieve identities linked to a user (admin only)"""
-    return auth_service.get_user_identities(user_id=user_id)
+    return await auth_service.get_user_identities(user_id=user_id)
 
 
 @router.post("/auth/identities/link", response_model=dict[str, Any])
@@ -255,10 +258,10 @@ async def get_user_identities(
 async def link_identity(
     auth_token: str,
     link_data: LinkIdentity,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Link an identity to a user"""
-    return auth_service.link_identity(
+    return await auth_service.link_identity(
         auth_token=auth_token,
         provider=link_data.provider,
         redirect_url=link_data.redirect_url,
@@ -270,10 +273,10 @@ async def link_identity(
 async def unlink_identity(
     auth_token: str,
     identity_id: str,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Unlink an identity from a user"""
-    return auth_service.unlink_identity(auth_token=auth_token, identity_id=identity_id)
+    return await auth_service.unlink_identity(auth_token=auth_token, identity_id=identity_id)
 
 
 @router.put("/auth/session/data", response_model=dict[str, Any])
@@ -281,20 +284,20 @@ async def unlink_identity(
 async def set_session_data(
     auth_token: str,
     session_data: SessionData,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Set the session data"""
-    return auth_service.set_session_data(auth_token=auth_token, data=session_data.data)
+    return await auth_service.set_session_data(auth_token=auth_token, data=session_data.data)
 
 
 @router.get("/auth/token/{token}", response_model=dict[str, Any])
 @handle_supabase_error
 async def get_user_by_token(
     token: str,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Get user information from a JWT token"""
-    return auth_service.get_user_by_token(token=token)
+    return await auth_service.get_user_by_token(token=token)
 
 
 @router.post("/auth/mfa/enroll", response_model=dict[str, Any])
@@ -302,10 +305,10 @@ async def get_user_by_token(
 async def enroll_mfa_factor(
     auth_token: str,
     mfa_data: MFAEnroll,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Enroll a multi-factor authentication factor"""
-    return auth_service.enroll_mfa_factor(
+    return await auth_service.enroll_mfa_factor(
         auth_token=auth_token, factor_type=mfa_data.factor_type
     )
 
@@ -315,10 +318,10 @@ async def enroll_mfa_factor(
 async def create_mfa_challenge(
     auth_token: str,
     challenge_data: MFAChallenge,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Create a multi-factor authentication challenge"""
-    return auth_service.create_mfa_challenge(
+    return await auth_service.create_mfa_challenge(
         auth_token=auth_token, factor_id=challenge_data.factor_id
     )
 
@@ -328,10 +331,10 @@ async def create_mfa_challenge(
 async def verify_mfa_challenge(
     auth_token: str,
     verify_data: MFAVerify,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Verify a multi-factor authentication challenge"""
-    return auth_service.verify_mfa_challenge(
+    return await auth_service.verify_mfa_challenge(
         auth_token=auth_token,
         factor_id=verify_data.factor_id,
         challenge_id=verify_data.challenge_id,
@@ -344,21 +347,21 @@ async def verify_mfa_challenge(
 async def unenroll_mfa_factor(
     auth_token: str,
     factor_id: str,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Unenroll a multi-factor authentication factor"""
-    return auth_service.unenroll_mfa_factor(auth_token=auth_token, factor_id=factor_id)
+    return await auth_service.unenroll_mfa_factor(auth_token=auth_token, factor_id=factor_id)
 
 
-@router.get("/auth/admin/users", response_model=dict[str, Any])
+@router.get("/auth/admin/users", response_model=dict[str, Any], dependencies=[Depends(get_current_active_superuser)])
 @handle_supabase_error
 async def list_users(
     page: int = 1,
     per_page: int = 50,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """list all users (admin only)"""
-    return auth_service.list_users(page=page, per_page=per_page)
+    return await auth_service.list_users(page=page, per_page=per_page)
 
 
 @router.post("/auth/admin/users", response_model=dict[str, Any])
@@ -366,10 +369,10 @@ async def list_users(
 async def admin_create_user(
     user: UserCreate,
     email_confirm: bool = False,
-    auth_service: SupabaseAuthService = Depends(SupabaseClient.get_auth_service),
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
     """Create a new user with admin privileges"""
-    return auth_service.admin_create_user(
+    return await auth_service.admin_create_user(
         email=user.email,
         password=user.password,
         user_metadata=user.user_metadata,

@@ -35,13 +35,26 @@ from app.api.routes.db import items, login, private, users, utils
 from app.core.config import settings
 
 api_router = APIRouter()
-api_router.include_router(login.router)
-api_router.include_router(users.router)
-api_router.include_router(utils.router)
-api_router.include_router(items.router)
 
-# SUPABASE endpoints
-api_router.include_router(db_client_router)
+
+# SUPABASE/POSTGRES endpoints conditional inclusion
+if getattr(settings, "SUPABASE_URL", False):
+    api_router.include_router(db_auth_router, prefix="/supabase")
+    api_router.include_router(db_client_router, prefix="/supabase")
+    api_router.include_router(db_database_router, prefix="/supabase")
+    api_router.include_router(db_edge_functions_router, prefix="/supabase")
+    api_router.include_router(db_real_time_router, prefix="/supabase")
+    api_router.include_router(db_storage_router, prefix="/supabase")
+elif getattr(settings, "POSTGRES_SERVER", None):
+    api_router.include_router(login.router)
+    api_router.include_router(users.router)
+    api_router.include_router(utils.router)
+    api_router.include_router(items.router)
+    pass
+else:
+    raise RuntimeError(
+        "No database backend configured. Set either Postgres or Supabase environment variables."
+    )
 
 # VAPI endpoints
 api_router.include_router(vapi_assistants_router)

@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Any
 
-import requests
+import httpx
 from fastapi import HTTPException
 
 from app.core.config import settings
@@ -118,14 +118,14 @@ class SupabaseService:
             logger.info("Initialized empty JSON data")
 
         try:
-            response = await requests.request(
-                method=method,
-                url=url,
-                headers=request_headers,
-                json=data,
-                params=params,
-                timeout=timeout,
-            )
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                response = await client.request(
+                    method=method,
+                    url=url,
+                    headers=request_headers,
+                    json=data,
+                    params=params,
+                )
 
             logger.info(f"Request to {url}: {method} - Status: {response.status_code}")
             logger.info(f"Response headers: {response.headers}")
@@ -149,20 +149,12 @@ class SupabaseService:
                 return response.json()
             return {}
 
-        except requests.exceptions.HTTPError as e:
-            error_detail = self._parse_error_response(response)
+        except httpx.HTTPStatusError as e:
+            error_detail = self._parse_error_response(e.response)
             logger.error(f"Supabase API error: {str(e)} - Details: {error_detail}")
-            raise HTTPException(status_code=response.status_code, detail=str(error_detail))
+            raise HTTPException(status_code=e.response.status_code, detail=str(error_detail))
 
-        except requests.exceptions.ConnectionError as e:
-            logger.error("Supabase connection error: " + str(e))
-            raise HTTPException(status_code=503, detail="Unable to connect to Supabase API")
-
-        except requests.exceptions.Timeout as e:
-            logger.error(f"Supabase request timeout: {str(e)}")
-            raise HTTPException(status_code=504, detail="Request to Supabase API timed out")
-
-        except requests.exceptions.RequestException as e:
+        except httpx.RequestError as e:
             logger.error(f"Supabase request exception: {str(e)}")
             raise HTTPException(status_code=500, detail="Request error")
 
@@ -170,8 +162,8 @@ class SupabaseService:
             logger.exception(f"Unexpected error during Supabase request: {str(e)}")
             raise HTTPException(status_code=500, detail="Unexpected error during Supabase request")
 
-    def _parse_error_response(self, response: requests.Response) -> dict:
+    def _parse_error_response(self, response) -> dict:
         try:
             return response.json()
-        except json.JSONDecodeError:
-            return {"status": response.status_code, "message": response.text}
+        except Exception:
+            return {"status": getattr(response, "status_code", None), "message": getattr(response, "text", str(response))}
