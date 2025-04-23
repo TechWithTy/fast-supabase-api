@@ -6,7 +6,7 @@ from pydantic import BaseModel, EmailStr
 
 from app.supabase_home.client import SupabaseClient
 from app.supabase_home.functions.auth import SupabaseAuthService
-from app.api.deps import get_current_active_superuser
+from app.api.deps_supabase import get_current_supabase_superuser
 
 router = APIRouter(tags=["Supabase Auth"])
 
@@ -353,7 +353,7 @@ async def unenroll_mfa_factor(
     return await auth_service.unenroll_mfa_factor(auth_token=auth_token, factor_id=factor_id)
 
 
-@router.get("/auth/admin/users", response_model=dict[str, Any], dependencies=[Depends(get_current_active_superuser)])
+@router.get("/auth/admin/users", response_model=dict[str, Any], dependencies=[Depends(get_current_supabase_superuser)])
 @handle_supabase_error
 async def list_users(
     page: int = 1,
