@@ -2,8 +2,10 @@ import os
 from contextlib import asynccontextmanager
 
 import redis.asyncio as redis
-from fastapi import APIRouter, FastAPI, Header, HTTPException, Request
+from fastapi import APIRouter, FastAPI, Header, HTTPException, Request, UploadFile, File, Depends, Form
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 
 # SUPABASE
@@ -12,7 +14,7 @@ from app.api.based_routes.db.client import router as db_client_router
 from app.api.based_routes.db.database import router as db_database_router
 from app.api.based_routes.db.edge_functions import router as db_edge_functions_router
 from app.api.based_routes.db.real_time import router as db_real_time_router
-from app.api.based_routes.db.storage import router as db_storage_router
+from app.api.based_routes.db.storage import router as db_storage_router, upload_file as storage_upload_file
 
 # ElevenLabs routers
 from app.api.based_routes.eleven_labs.voice import router as elevenlabs_voice_router
@@ -39,6 +41,8 @@ from app.api.based_routes.vapi.voice import router as vapi_voice_router
 from app.api.based_routes.vapi.webhooks import router as vapi_webhooks_router
 from app.api.routes.db import items, login, private, users, utils
 from app.core.config import settings
+from app.supabase_home.client import SupabaseClient
+from app.supabase_home.functions.storage import SupabaseStorageService
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
@@ -79,12 +83,29 @@ app.add_middleware(CSRFMiddleware)
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     import traceback
-
     print("EXCEPTION:", exc)
     traceback.print_exc()
     return JSONResponse(
         status_code=500,
-        content={"error": "An internal error occurred. Please contact support."},
+        content={"error": "An internal error occurred. Please contact support."}
+    )
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    # Return a consistent error format for HTTPExceptions
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": exc.detail if exc.detail else "HTTP error occurred."}
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # Return a consistent error format for validation errors
+    return JSONResponse(
+        status_code=422,
+        content={"error": "Validation failed.", "details": exc.errors()}
     )
 
 
@@ -106,40 +127,30 @@ def protected_resource(authorization: str = Header(None)):
         raise HTTPException(status_code=403, detail="Insufficient scope")
     return {"message": "Access granted!"}
 
-# SUPABASE/POSTGRES endpoints conditional inclusion
-if getattr(settings, "SUPABASE_URL", False):
-    api_router.include_router(db_auth_router, prefix="/supabase")
-    api_router.include_router(db_client_router, prefix="/supabase")
-    api_router.include_router(db_database_router, prefix="/supabase")
-    api_router.include_router(db_edge_functions_router, prefix="/supabase")
-    api_router.include_router(db_real_time_router, prefix="/supabase")
-    api_router.include_router(db_storage_router, prefix="/supabase")
-elif getattr(settings, "POSTGRES_SERVER", None):
-    api_router.include_router(login.router)
-    api_router.include_router(users.router)
-    api_router.include_router(utils.router)
-    api_router.include_router(items.router)
-    pass
-else:
-    raise RuntimeError(
-        "No database backend configured. Set either Postgres or Supabase environment variables."
-    )
+# --- File Upload for User (Admin Bypass Email Verification) ---
+# Directly mount the storage upload_file endpoint at the new route, reusing the logic
+api_router.add_api_route(
+    "/upload-for-user",
+    storage_upload_file,
+    methods=["POST"],
+    tags=["Supabase DB"]
+)
 
-# VAPI endpoints
+# Register all routers on the main api_router
+api_router.include_router(db_auth_router, prefix="/supabase")
+api_router.include_router(db_client_router, prefix="/supabase")
+api_router.include_router(db_database_router, prefix="/supabase")
+api_router.include_router(db_edge_functions_router, prefix="/supabase")
+api_router.include_router(db_real_time_router, prefix="/supabase")
+api_router.include_router(db_storage_router, prefix="/supabase")
 api_router.include_router(vapi_assistants_router)
 api_router.include_router(vapi_calls_router)
 api_router.include_router(vapi_webhooks_router)
 api_router.include_router(vapi_voice_router)
-
-# ElevenLabs endpoints
 api_router.include_router(elevenlabs_voice_router)
-
-# OSINT & MLS endpoints
 api_router.include_router(zehef_router, prefix="/osint/zehef")
 api_router.include_router(osint_phone_router)
 api_router.include_router(mls_router)
-
-# GHL endpoints
 api_router.include_router(ghl_create_subaccount_router)
 api_router.include_router(ghl_upload_contact_router)
 api_router.include_router(ghl_apply_tag_router)
@@ -148,4 +159,13 @@ api_router.include_router(ghl_schedule_appointment_router)
 if settings.ENVIRONMENT == "local":
     api_router.include_router(private.router)
 
+# Add a /api/v1/trigger-error endpoint to always raise an error for error handling tests
+@api_router.get("/trigger-error")
+def trigger_error():
+    """
+    Endpoint that always raises an exception for error handling tests.
+    """
+    raise RuntimeError("This is a test error for error handling.")
+
+# Attach api_router to main app
 app.include_router(api_router, prefix="/api/v1")

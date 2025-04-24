@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
@@ -6,12 +6,6 @@ from app.supabase_home.client import SupabaseClient
 from app.supabase_home.functions.storage import SupabaseStorageService
 
 router = APIRouter(tags=["Supabase DB"])
-
-app = FastAPI(
-    title="SupabaseStorageAPI",
-    description="API to interact with current storage functions",
-)
-
 
 class BucketCreate(BaseModel):
     bucket_id: str
@@ -26,7 +20,7 @@ class BucketUpdate(BaseModel):
     allowed_mime_types: list[str] | None = None
 
 
-@app.post("/buckets")
+@router.post("/buckets")
 async def create_bucket(
     bucket: BucketCreate,
     storage_service: SupabaseStorageService = Depends(
@@ -45,7 +39,7 @@ async def create_bucket(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.get("/buckets/{bucket_id}")
+@router.get("/buckets/{bucket_id}")
 async def get_bucket(
     bucket_id: str,
     storage_service: SupabaseStorageService = Depends(
@@ -59,7 +53,7 @@ async def get_bucket(
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@app.get("/buckets")
+@router.get("/buckets")
 async def list_buckets(
     storage_service: SupabaseStorageService = Depends(
         SupabaseClient.get_storage_service
@@ -72,7 +66,7 @@ async def list_buckets(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.put("/buckets/{bucket_id}")
+@router.put("/buckets/{bucket_id}")
 async def update_bucket(
     bucket_id: str,
     bucket: BucketUpdate,
@@ -92,7 +86,7 @@ async def update_bucket(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.delete("/buckets/{bucket_id}")
+@router.delete("/buckets/{bucket_id}")
 async def delete_bucket(
     bucket_id: str,
     storage_service: SupabaseStorageService = Depends(
@@ -106,7 +100,7 @@ async def delete_bucket(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/buckets/{bucket_id}/empty")
+@router.post("/buckets/{bucket_id}/empty")
 async def empty_bucket(
     bucket_id: str,
     storage_service: SupabaseStorageService = Depends(
@@ -120,7 +114,7 @@ async def empty_bucket(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/buckets/{bucket_id}/upload")
+@router.post("/buckets/{bucket_id}/upload")
 async def upload_file(
     bucket_id: str,
     path: str = Query(...),
@@ -142,7 +136,7 @@ async def upload_file(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.get("/buckets/{bucket_id}/download")
+@router.get("/buckets/{bucket_id}/download")
 async def download_file(
     bucket_id: str,
     path: str = Query(...),
@@ -159,7 +153,7 @@ async def download_file(
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@app.get("/buckets/{bucket_id}/files")
+@router.get("/buckets/{bucket_id}/files")
 async def list_files(
     bucket_id: str,
     path: str = Query(""),
@@ -178,7 +172,7 @@ async def list_files(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/buckets/{bucket_id}/move")
+@router.post("/buckets/{bucket_id}/move")
 async def move_file(
     bucket_id: str,
     source_path: str = Query(...),
@@ -198,7 +192,7 @@ async def move_file(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/buckets/{bucket_id}/copy")
+@router.post("/buckets/{bucket_id}/copy")
 async def copy_file(
     bucket_id: str,
     source_path: str = Query(...),
@@ -218,7 +212,7 @@ async def copy_file(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.delete("/buckets/{bucket_id}/files")
+@router.delete("/buckets/{bucket_id}/files")
 async def delete_files(
     bucket_id: str,
     paths: list[str] = Query(...),
@@ -233,7 +227,7 @@ async def delete_files(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/buckets/{bucket_id}/sign")
+@router.post("/buckets/{bucket_id}/sign")
 async def create_signed_url(
     bucket_id: str,
     path: str = Query(...),
@@ -251,7 +245,7 @@ async def create_signed_url(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/buckets/{bucket_id}/sign-bulk")
+@router.post("/buckets/{bucket_id}/sign-bulk")
 async def create_signed_urls(
     bucket_id: str,
     paths: list[str] = Query(...),
@@ -269,7 +263,7 @@ async def create_signed_urls(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/buckets/{bucket_id}/upload/sign")
+@router.post("/buckets/{bucket_id}/upload/sign")
 async def create_signed_upload_url(
     bucket_id: str,
     path: str = Query(...),
@@ -286,7 +280,7 @@ async def create_signed_upload_url(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.get("/buckets/{bucket_id}/public")
+@router.get("/buckets/{bucket_id}/public")
 async def get_public_url(
     bucket_id: str,
     path: str = Query(...),
