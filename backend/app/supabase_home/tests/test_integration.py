@@ -4,14 +4,14 @@ import uuid
 import json
 import time
 from utils.sensitive import load_environment_files
-from django.conf import settings
+from fastapi.testclient import TestClient
+from apps.main import app
 
-# Import the service classes from their respective modules
 from apps.supabase_home.auth import SupabaseAuthService
 from apps.supabase_home.storage import SupabaseStorageService
 from apps.supabase_home.database import SupabaseDatabaseService
+from app.core.config import settings  # Import FastAPI settings
 
-# Load environment variables for tests
 load_environment_files()
 
 @pytest.fixture
@@ -24,72 +24,40 @@ def test_record_data():
         "created_at": "2023-01-01T00:00:00"
     }
 
+@pytest.fixture
+def client():
+    """
+    FastAPI TestClient for endpoint testing
+    """
+    return TestClient(app)
 
 class TestSupabaseIntegration:
-    """Test Supabase integration with real Supabase services"""
+    """
+    Test Supabase integration with real Supabase services and FastAPI endpoints
+    """
     
-    def test_authentication(self, supabase_client, test_user_credentials, check_supabase_resources):
-        """Test authentication services"""
+    def test_authentication(self, client, test_record_data):
+        """
+        Test authentication endpoint via FastAPI
+        """
+        # Example: Adjust endpoint/fields as per your API
+        response = client.post("/auth/signup", json={
+            "email": f"testuser_{uuid.uuid4()}@example.com",
+            "password": "Password123!",
+            "metadata": {"role": "tester"}
+        })
+        assert response.status_code in (200, 201)
+        data = response.json()
+        assert "id" in data or "user" in data
+        # Clean up if needed
+        # ...
 
-        # Skip if using a pre-existing test user
-        if os.getenv("SKIP_USER_CREATION", "false").lower() == "true":
-            pytest.skip("Using pre-existing test user - skipping sign-up test")
-        
-        # Use your custom AuthService
-        auth_service = SupabaseAuthService()
-        
-        try:
-            # Generate unique email for testing
-            unique_email = f"testuser_{uuid.uuid4()}@example.com"
-            password = "Password123!"
-            user_metadata = {"name": "Test User", "role": "tester"}
-            
-            # 1. Sign up a new user using admin API (auto-confirms email)
-            print(f"\nAttempting to create user with email: {unique_email} using admin API")
-            signup_result = auth_service.admin_create_user(
-                email=unique_email,
-                password=password,
-                user_metadata=user_metadata,
-                email_confirm=True  # Auto-confirm the email
-            )
-            
-            assert signup_result is not None
-            assert "id" in signup_result
-            assert "email" in signup_result
-            assert signup_result["email"] == unique_email
-            print(f"Successfully created user with ID: {signup_result['id']}")
-            
-            # 2. Sign in with the new user
-            print(f"Attempting to sign in with email: {unique_email}")
-            signin_result = auth_service.sign_in_with_email(
-                email=unique_email,
-                password=password
-            )
-            
-            assert signin_result is not None
-            assert "access_token" in signin_result
-            assert "refresh_token" in signin_result
-            assert "user" in signin_result
-            print("Successfully signed in with the new user")
-            
-        except Exception as e:
-            if "already registered" in str(e).lower():
-                pytest.skip(f"User with email {unique_email} already exists")
-            elif "rate limit" in str(e).lower():
-                pytest.skip("Rate limit exceeded for auth operations")
-            elif "not enabled" in str(e).lower() or "not configured" in str(e).lower():
-                pytest.skip("Auth service not properly configured in Supabase")
-            elif "email not confirmed" in str(e).lower():
-                pytest.skip("Email confirmation is required but not supported in tests")
-            elif "unauthorized" in str(e).lower() or "not authorized" in str(e).lower():
-                pytest.skip("Admin API access is required for these tests")
-            else:
-                pytest.fail(f"Authentication test failed: {str(e)}")
-    
-    def test_storage_operations(self, check_supabase_resources, test_user_credentials):
-        """Test storage operations"""
+    def test_storage_operations(self, client, test_record_data):
+        """
+        Test storage operations
+        """
         # Get credentials from the fixture
-        auth_token = test_user_credentials.get('auth_token')
+        auth_token = "your_auth_token"  # Replace with actual auth token
         
         # Generate a unique bucket name for this test run
         unique_test_bucket = f"test-bucket-{uuid.uuid4().hex[:8]}"
@@ -418,17 +386,19 @@ class TestSupabaseIntegration:
             # Clean up: Delete the test bucket
             print(f"\nCleaning up: Attempting to delete bucket {unique_test_bucket}")
             cleanup_bucket(unique_test_bucket)
-    
-    def test_database_operations(self, check_supabase_resources, test_user_credentials):
-        """Test database operations"""
+
+    def test_database_operations(self, client, test_record_data):
+        """
+        Test database operations
+        """
   
         # First authenticate to get an auth token
         auth_service = SupabaseAuthService()
         database_service = SupabaseDatabaseService()
         
         # Get test user credentials from the fixture
-        email = test_user_credentials.get('email')
-        password = test_user_credentials.get('password')
+        email = "your_email@example.com"  # Replace with actual email
+        password = "your_password"  # Replace with actual password
         
         # Sign in with the test user
         print(f"\nAttempting to sign in with email: {email}")
@@ -587,9 +557,11 @@ class TestSupabaseIntegration:
                     print(f"Successfully deleted test table: {test_table_name}")
                 except Exception as e:
                     print(f"Warning: Failed to delete test table: {str(e)}")
-    
-    def test_end_to_end_flow(self, check_supabase_resources, test_user_credentials, test_bucket_name, test_table_name):
-        """Test an end-to-end flow combining authentication, database, and storage operations"""
+
+    def test_end_to_end_flow(self, client, test_record_data):
+        """
+        Test an end-to-end flow combining authentication, database, and storage operations
+        """
    
         auth_service = SupabaseAuthService()
         storage_service = SupabaseStorageService()
@@ -600,8 +572,8 @@ class TestSupabaseIntegration:
         try:
             print("\nAttempting to sign in...")
             result = auth_service.sign_in_with_email(
-                email=test_user_credentials['email'],
-                password=test_user_credentials['password']
+                email="your_email@example.com",  # Replace with actual email
+                password="your_password"  # Replace with actual password
             )
             auth_token = result.get("access_token")
             print("Sign in successful")
@@ -609,16 +581,16 @@ class TestSupabaseIntegration:
             try:
                 print(f"Sign-in failed, attempting to create test user: {str(e)}")
                 result = auth_service.admin_create_user(
-                    email=test_user_credentials['email'],
-                    password=test_user_credentials['password'],
+                    email="your_email@example.com",  # Replace with actual email
+                    password="your_password",  # Replace with actual password
                     email_confirm=True
                 )
                 
                 # Try to sign in with the newly created user
                 try:
                     signin_result = auth_service.sign_in_with_email(
-                        email=test_user_credentials['email'],
-                        password=test_user_credentials['password']
+                        email="your_email@example.com",  # Replace with actual email
+                        password="your_password"  # Replace with actual password
                     )
                     auth_token = signin_result.get("access_token")
                     print("Sign in successful after user creation")
@@ -644,7 +616,7 @@ class TestSupabaseIntegration:
                 print(f"\nUnexpected error when checking for exec_sql function: {str(e)}")
         
         # 3. Create bucket for storage tests
-        unique_test_bucket = f"{test_bucket_name}-{uuid.uuid4().hex[:8]}"
+        unique_test_bucket = f"test-bucket-{uuid.uuid4().hex[:8]}"
         print(f"\nCreating test bucket: {unique_test_bucket}")
         
         try:

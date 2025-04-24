@@ -126,16 +126,23 @@ class Settings(BaseSettings):
     def supabase_enabled(self) -> bool:
         return bool(self.SUPABASE_URL and self.SUPABASE_ANON_KEY)
 
+    # Dynamically determine db_backend based on env/config availability
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def db_backend(self) -> str:
-        if self.SQLALCHEMY_DATABASE_URI:
+        """
+        Returns 'postgres' if all Postgres env vars are set, else 'supabase' if Supabase env is set, else fallback to 'supabase'.
+        Priority: explicit DB_BACKEND env > Postgres > Supabase > fallback
+        """
+        db_backend_env = os.environ.get("DB_BACKEND")
+        if db_backend_env:
+            return db_backend_env.lower()
+        pg_vars = [self.POSTGRES_SERVER, self.POSTGRES_PORT, self.POSTGRES_USER, self.POSTGRES_PASSWORD, self.POSTGRES_DB]
+        if all(pg_vars):
             return "postgres"
-        elif self.supabase_enabled:
+        if self.SUPABASE_URL and self.SUPABASE_ANON_KEY:
             return "supabase"
-        else:
-            raise RuntimeError(
-                "No database backend configured. Set either Postgres or Supabase environment variables."
-            )
+        return "supabase"
 
     def _check_default_secret(self, var_name: str, value: str | None) -> None:
         if value == "changethis":

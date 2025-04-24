@@ -30,7 +30,7 @@ async def clone_voice(
     if not api_key:
         raise HTTPException(status_code=500, detail="Missing ElevenLabs API Key")
     files_payload = [(file.filename, await file.read()) for file in files]
-    async def endpoint_logic(request, current_user):
+    async def endpoint_logic(_request, current_user):
         try:
             response = create_voice_clone(api_key, name, files_payload)
             return VoiceCloneResponse(voice_id=response.get("voice_id", ""), details=response)
