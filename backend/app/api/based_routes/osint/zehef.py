@@ -3,8 +3,9 @@ import os
 import sys
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
+from app.api.utils.credits import call_function_with_credits
 
 # Ensure Zehef is on sys.path for imports (absolute path for reliability)
 zehef_path = os.path.abspath(
@@ -23,7 +24,7 @@ class ZehefEmailRequest(BaseModel):
 
 
 @router.post("/email", response_model=dict[str, Any])
-async def zehef_email_lookup(req: ZehefEmailRequest):
+async def zehef_email_lookup(req: ZehefEmailRequest, request: Request, current_user=Depends(None), db=Depends(None)):
     """
     Endpoint to lookup public OSINT information on an email address using Zehef.
     Zehef features include:
@@ -33,15 +34,17 @@ async def zehef_email_lookup(req: ZehefEmailRequest):
         - Generating email combinations
     Zehef is licensed under GPL v3 and requires Python 3.10+.
     """
-    try:
-        import contextlib
-        import io
+    async def endpoint_logic(request, current_user):
+        try:
+            import contextlib
+            import io
 
-        output = io.StringIO()
-        sys.argv = ["zehef", req.email]
-        with contextlib.redirect_stdout(output):
-            await zehef_parser()
-        result = output.getvalue()
-        return {"result": result}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+            output = io.StringIO()
+            sys.argv = ["zehef", req.email]
+            with contextlib.redirect_stdout(output):
+                await zehef_parser()
+            result = output.getvalue()
+            return {"result": result}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    return await call_function_with_credits(endpoint_logic, request, current_user, db, cost=5)

@@ -1,4 +1,6 @@
 import uuid
+from datetime import datetime
+from typing import Optional
 
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
@@ -111,3 +113,29 @@ class TokenPayload(SQLModel):
 class NewPassword(SQLModel):
     token: str
     new_password: str = Field(min_length=8, max_length=40)
+
+
+# --- Credits System Models ---
+
+
+class UserProfile(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(
+        foreign_key="user.id", nullable=False, unique=True, index=True
+    )
+    credits_balance: int = Field(default=0, nullable=False)
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    user: Optional["User"] = Relationship()
+
+
+class CreditTransaction(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_profile_id: uuid.UUID = Field(
+        foreign_key="userprofile.id", nullable=False, index=True
+    )
+    amount: int = Field(nullable=False)
+    transaction_type: str = Field(max_length=32, nullable=False)  # 'deduct' or 'add'
+    description: str | None = Field(default=None, max_length=255)
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    user_profile: Optional["UserProfile"] = Relationship()

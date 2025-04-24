@@ -16,3 +16,9 @@
 [submodule "backend/app/osint/backend/app/osint/Zehef"]
 	path = backend/app/osint/backend/app/osint/Zehef
 	url = https://github.com/TechWithTy/Zehef.git
+[submodule "backend/app/api/based_routes/osint/theHarvester"]
+	path = backend/app/api/based_routes/osint/theHarvester
+	url = https://github.com/TechWithTy/theHarvester.git
+[submodule "backend/app/osint/tools/theHarvester"]
+	path = backend/app/osint/tools/theHarvester
+	url = https://github.com/TechWithTy/theHarvester.git
