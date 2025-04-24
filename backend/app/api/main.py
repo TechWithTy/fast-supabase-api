@@ -32,6 +32,7 @@ from app.api.based_routes.osint.mls import router as mls_router
 from app.api.based_routes.osint.phone import router as osint_phone_router
 
 # OSINT & MLS routers
+from app.api.based_routes.osint.theharvester_api import router as theharvester_router
 from app.api.based_routes.osint.zehef import router as zehef_router
 
 # VAPI routers
@@ -155,6 +156,7 @@ api_router.include_router(ghl_create_subaccount_router)
 api_router.include_router(ghl_upload_contact_router)
 api_router.include_router(ghl_apply_tag_router)
 api_router.include_router(ghl_schedule_appointment_router)
+api_router.include_router(theharvester_router, prefix="/osint/theharvester")
 
 if settings.ENVIRONMENT == "local":
     api_router.include_router(private.router)

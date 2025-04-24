@@ -36,6 +36,9 @@ dependencies = [
     "vapi-server-sdk>=1.4.2",
     "anyio>=4.6.0",
     "aioredis>=2.0.1",
+    "aiomultiprocess",
+    "winloop; sys_platform == 'win32'",
+    "uvloop; sys_platform != 'win32'",
 ]
 
 [tool.uv]
