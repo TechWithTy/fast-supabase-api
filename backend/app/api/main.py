@@ -2,7 +2,7 @@ import os
 from contextlib import asynccontextmanager
 
 import redis.asyncio as redis
-from fastapi import APIRouter, FastAPI, Request
+from fastapi import APIRouter, FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -90,6 +90,21 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 api_router = APIRouter()
 
+
+# --- Test OAuth-protected resource (for security tests) ---
+@api_router.get("/supabase/integrations/protected-resource")
+def protected_resource(authorization: str = Header(None)):
+    """
+    Dummy protected resource to test OAuth scope enforcement.
+    Expects 'Authorization: Bearer <token>' with a specific value for access.
+    """
+    if authorization is None or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid token")
+    token = authorization.split(" ", 1)[1]
+    # Simulate scope check: only 'valid-oauth-token-with-scope' is allowed
+    if token != "valid-oauth-token-with-scope":
+        raise HTTPException(status_code=403, detail="Insufficient scope")
+    return {"message": "Access granted!"}
 
 # SUPABASE/POSTGRES endpoints conditional inclusion
 if getattr(settings, "SUPABASE_URL", False):

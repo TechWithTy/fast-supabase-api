@@ -12,7 +12,10 @@ from app.core.config import settings
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
-    return f"{route.tags[0]}-{route.name}"
+    # Defensive: If route.tags is empty, fallback to route.name only
+    if route.tags and len(route.tags) > 0:
+        return f"{route.tags[0]}-{route.name}"
+    return route.name
 
 
 if settings.SENTRY_DSN and settings.ENVIRONMENT != "local":
