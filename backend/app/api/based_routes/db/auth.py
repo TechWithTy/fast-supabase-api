@@ -263,6 +263,47 @@ async def get_user(
     return await auth_service.get_user(user_id=user_id)
 
 
+@router.delete("/auth/users/{user_id}", response_model=dict[str, Any])
+@handle_supabase_error
+async def delete_user(
+    user_id: str,
+    request: Request,
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
+):
+    '''Delete a user by ID (admin only)'''
+    logging.debug(f"[delete_user] Handler called for user_id={user_id}")
+    if not isinstance(request, Request):
+        logging.error("[delete_user] Request object not injected!")
+        raise HTTPException(status_code=500, detail="Internal error: Request object not injected")
+    auth_header = request.headers.get("authorization")
+    if not auth_header or not auth_header.lower().startswith("bearer "):
+        logging.warning("[delete_user] Missing credentials")
+        raise HTTPException(status_code=401, detail="Missing credentials")
+    token = auth_header[7:]
+    try:
+        user_info = await auth_service.get_user_by_token(token)
+        logging.debug(f"[delete_user] Token decoded, user_info: {user_info}")
+    except Exception as e:
+        logging.error(f"[delete_user] Could not validate credentials: {e}")
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
+    user = user_info.get("user", user_info)
+    meta = user.get("user_metadata", {})
+    app_meta = user.get("app_metadata", {})
+    current_uid = user.get("id")
+    logging.debug(f"[delete_user] meta: {meta}, app_meta: {app_meta}, current_uid: {current_uid}")
+    # Only allow superusers
+    if not (meta.get("is_superuser") or app_meta.get("is_superuser")):
+        logging.warning(f"[delete_user] Forbidden access: current_uid={current_uid}, target_uid={user_id}")
+        raise HTTPException(status_code=403, detail="Forbidden")
+    logging.info(f"[delete_user] Permission granted for user_id={user_id}")
+    # Only now call the admin endpoint to delete
+    return auth_service._make_request(
+        method="DELETE",
+        endpoint=f"/auth/v1/admin/users/{user_id}",
+        is_admin=True
+    )
+
+
 @router.put("/auth/users/{user_id}", response_model=dict[str, Any])
 @handle_supabase_error
 async def update_user(
