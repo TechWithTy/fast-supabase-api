@@ -297,7 +297,7 @@ async def delete_user(
         raise HTTPException(status_code=403, detail="Forbidden")
     logging.info(f"[delete_user] Permission granted for user_id={user_id}")
     # Only now call the admin endpoint to delete
-    return auth_service._make_request(
+    return await auth_service._make_request(
         method="DELETE",
         endpoint=f"/auth/v1/admin/users/{user_id}",
         is_admin=True
