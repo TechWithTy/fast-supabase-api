@@ -35,6 +35,7 @@ dependencies = [
     "bs4>=0.0.2",
     "vapi-server-sdk>=1.4.2",
     "anyio>=4.6.0",
+    "aioredis>=2.0.1",
 ]
 
 [tool.uv]
@@ -83,5 +84,3 @@ ignore = [
 [tool.ruff.lint.pyupgrade]
 # Preserve types, even if a file imports `from __future__ import annotations`.
 keep-runtime-typing = true
-
-

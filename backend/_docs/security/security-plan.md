@@ -211,11 +211,72 @@ For more details, see the [FastAPI Security Docs](https://fastapi.tiangolo.com/a
 
 ---
 
+## Recent Security Enhancements (2025-04)
+
+### Brute Force & Lockout
+- Implemented failed login tracking and account lockout after repeated failures in FastAPI login endpoint ([auth.py]).
+- **Next:** Move lockout store to Redis for distributed deployments.
+
+### OAuth Scope Enforcement
+- Added reusable FastAPI dependency for OAuth scope checks (`require_scope`).
+- **Next:** Apply to all integration endpoints and ensure OAuth middleware parses and sets scopes on `request.state.token_scopes`.
+
+### Replay Attack Protection (Webhooks)
+- Created utility for nonce/timestamp validation to reject duplicate/old webhook requests.
+- **Next:** Require and validate nonce on all webhook endpoints (FastAPI and Django).
+
+### Error Handling
+- Added global FastAPI exception handler to prevent stack traces or sensitive info from leaking to clients.
+- **Next:** Review Django error handling for parity; add internal logging for all exceptions.
+
+### File Upload Security
+- **TODO:** Audit all upload endpoints for file type, size, and content validation. Harden as needed.
+
+---
+
+## Security Roadmap / Next Steps
+
+1. **Productionize Lockout & Replay Protection:**
+   - Move in-memory stores to Redis or a persistent database.
+   - Add expiry and cleanup logic for nonces and lockout records.
+
+2. **OAuth Scope Coverage:**
+   - Ensure all integration endpoints require and check appropriate scopes.
+   - Add tests for insufficient-scope access attempts.
+
+3. **Webhook Security:**
+   - Require and validate nonce/timestamp on all webhook handlers (Django & FastAPI).
+   - Add tests for replay attack rejection.
+
+4. **File Upload Hardening:**
+   - Enforce strict file type and size limits.
+   - Integrate malware scanning for uploads if feasible.
+   - Add tests for dangerous/oversized file rejection.
+
+5. **Centralized Logging & Monitoring:**
+   - Ensure all auth, error, and security events are logged centrally (ELK, Loki, etc.).
+   - Set up alerting for suspicious patterns (e.g., repeated lockouts, replay attempts).
+
+6. **Continuous Security Testing:**
+   - Expand and automate security test suite (pytest, Playwright, etc.).
+   - Integrate security tests into CI/CD pipeline.
+
+---
+
+**For details or implementation references, see:**
+- `app/api/based_routes/db/auth.py` (lockout logic)
+- `app/api/utils/oauth_scope.py` (OAuth scope dependency)
+- `app/api/utils/replay_protection.py` (nonce validation)
+- `app/api/main.py` (global error handler)
+- `app/tests/api/security/test_security_features.py` (security tests)
+
+---
+
+*Last updated: 2025-04-24*
+
+---
+
 ## TODO
 - [ ] Regularly review and update this plan as the codebase evolves.
 - [ ] Perform periodic penetration testing and threat modeling.
 - [ ] Ensure all team members are trained on secure coding practices.
-
----
-
-_Last updated: 2025-04-20_

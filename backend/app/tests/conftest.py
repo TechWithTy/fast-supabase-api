@@ -1,3 +1,9 @@
+# Ensure environment variables are loaded for all tests
+import os
+# Set test user credentials globally for all tests
+
+
+
 from collections.abc import Generator
 
 import pytest
@@ -28,7 +34,7 @@ def db():
     # Optionally: cleanup code for SQLAlchemy, if used
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def client() -> Generator[TestClient, None, None]:
     with TestClient(app) as c:
         yield c

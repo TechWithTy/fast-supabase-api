@@ -2,15 +2,54 @@ import functools
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
+from redis.asyncio import Redis
 
 from app.supabase_home.client import SupabaseClient
 from app.supabase_home.functions.auth import SupabaseAuthService
 from app.api.deps_supabase import get_current_supabase_superuser
+from app.api.utils.redis_client import get_redis_client
 import logging
+import time
 
 router = APIRouter(tags=["Supabase Auth"])
 
+# In-memory store; use Redis/DB for production
+LOCKOUT_TIME = 300  # seconds
+MAX_ATTEMPTS = 5
+
+async def check_brute_force(email: str, redis_client: Redis):
+    key = f"lockout:{email}"
+    try:
+        val = await redis_client.get(key)
+        print(f"[DEBUG] Redis get {key} -> {val}")
+        if val and int(val) >= MAX_ATTEMPTS:
+            print(f"[DEBUG] Lockout triggered for {email}")
+            raise HTTPException(status_code=423, detail="Account locked due to too many failed attempts.")
+    except Exception as e:
+        print(f"[ERROR] check_brute_force exception for {email}: {e}")
+        raise
+
+async def record_failed_login(email: str, redis_client: Redis):
+    key = f"lockout:{email}"
+    try:
+        val = await redis_client.incr(key)
+        print(f"[DEBUG] Redis incr {key} -> {val}")
+        if int(val) == 1:
+            await redis_client.expire(key, LOCKOUT_TIME)
+    except Exception as e:
+        print(f"[ERROR] record_failed_login exception for {email}: {e}")
+        raise
+
+async def reset_failed_login(email: str, redis_client: Redis):
+    key = f"lockout:{email}"
+    try:
+        await redis_client.delete(key)
+        print(f"[DEBUG] Redis delete {key}")
+    except Exception as e:
+        print(f"[ERROR] reset_failed_login exception for {email}: {e}")
+        raise
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -127,14 +166,43 @@ async def create_anonymous_user(
     return await auth_service.create_anonymous_user()
 
 
-@router.post("/auth/signin", response_model=dict[str, Any])
+@router.post("/auth/login", response_model=dict[str, Any])
 @handle_supabase_error
+async def login_endpoint(
+    user: UserSignIn,
+    auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
+    redis_client: Redis = Depends(get_redis_client),
+):
+    """
+    API endpoint for user login, compatible with test expectations. Uses Redis-backed brute force protection.
+    """
+    return await sign_in_with_email(user, auth_service, redis_client)
+
+
+@router.post("/auth/signin", response_model=dict[str, Any])
 async def sign_in_with_email(
     user: UserSignIn,
     auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
+    redis_client: Redis = Depends(get_redis_client),
 ):
     """Sign in a user with email and password"""
-    return await auth_service.sign_in_with_email(email=user.email, password=user.password)
+    print(f"Checking brute force for: {user.email}")
+    await check_brute_force(user.email, redis_client)
+    try:
+        result = await auth_service.sign_in_with_email(email=user.email, password=user.password)
+        await reset_failed_login(user.email, redis_client)
+        return result
+    except Exception as e:
+        print(f"Sign in failed: {getattr(e, 'status_code', 'unknown')}: {getattr(e, 'detail', str(e))}")
+        await record_failed_login(user.email, redis_client)
+        # Check if lockout threshold is reached after recording failure
+        key = f"lockout:{user.email}"
+        val = await redis_client.get(key)
+        if val and int(val) >= MAX_ATTEMPTS:
+            print(f"[DEBUG] Lockout triggered for {user.email} after failed login")
+            raise HTTPException(status_code=423, detail="Account locked due to too many failed attempts.")
+        # Always return 401 for invalid credentials (raise, not return)
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
 
 @router.post("/auth/signin/otp", response_model=dict[str, Any])
