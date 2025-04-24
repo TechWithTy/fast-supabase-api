@@ -220,16 +220,18 @@ class SupabaseAuthService(SupabaseService):
 
     def get_user(self, user_id: str) -> dict[str, Any]:
         """
-        Retrieve a user by ID (admin only).
-
+        Retrieve a user by their UID from Supabase Auth.
         Args:
-            user_id: User's ID
-
+            user_id: The UID of the user to retrieve.
         Returns:
-            User data
+            User data as a dictionary.
+        Raises:
+            HTTPException if the user does not exist or another error occurs.
         """
         return self._make_request(
-            method="GET", endpoint=f"/auth/v1/admin/users/{user_id}", is_admin=True
+            method="GET",
+            endpoint=f"/auth/v1/admin/users/{user_id}",
+            is_admin=True
         )
 
     def update_user(self, user_id: str, user_data: dict[str, Any]) -> dict[str, Any]:

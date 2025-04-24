@@ -1,12 +1,13 @@
 import functools
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 
 from app.supabase_home.client import SupabaseClient
 from app.supabase_home.functions.auth import SupabaseAuthService
 from app.api.deps_supabase import get_current_supabase_superuser
+import logging
 
 router = APIRouter(tags=["Supabase Auth"])
 
@@ -88,6 +89,8 @@ def handle_supabase_error(func):
             error_msg = str(e)
             if "401" in error_msg:
                 raise HTTPException(status_code=401, detail="Unauthorized")
+            elif "403" in error_msg:
+                raise HTTPException(status_code=403, detail="Forbidden")
             elif "404" in error_msg:
                 raise HTTPException(status_code=404, detail="Resource not found")
             elif "409" in error_msg:
@@ -226,9 +229,37 @@ async def refresh_session(
 @handle_supabase_error
 async def get_user(
     user_id: str,
+    request: Request,
     auth_service: SupabaseAuthService = Depends(SupabaseClient().get_auth_service),
 ):
-    """Retrieve a user by ID (admin only)"""
+    '''Retrieve a user by ID (admin only or self-access)'''
+    logging.debug(f"[get_user] Handler called for user_id={user_id}")
+    if not isinstance(request, Request):
+        logging.error("[get_user] Request object not injected!")
+        raise HTTPException(status_code=500, detail="Internal error: Request object not injected")
+    # Extract and decode token
+    auth_header = request.headers.get("authorization")
+    if not auth_header or not auth_header.lower().startswith("bearer "):
+        logging.warning("[get_user] Missing credentials")
+        raise HTTPException(status_code=401, detail="Missing credentials")
+    token = auth_header[7:]
+    try:
+        user_info = await auth_service.get_user_by_token(token)
+        logging.debug(f"[get_user] Token decoded, user_info: {user_info}")
+    except Exception as e:
+        logging.error(f"[get_user] Could not validate credentials: {e}")
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
+    user = user_info.get("user", user_info)
+    current_uid = user.get("id")
+    meta = user.get("user_metadata", {})
+    app_meta = user.get("app_metadata", {})
+    logging.debug(f"[get_user] meta: {meta}, app_meta: {app_meta}, current_uid: {current_uid}")
+    # Only allow superusers or the user themselves
+    if not (meta.get("is_superuser") or app_meta.get("is_superuser") or current_uid == user_id):
+        logging.warning(f"[get_user] Forbidden access: current_uid={current_uid}, target_uid={user_id}")
+        raise HTTPException(status_code=403, detail="Forbidden")
+    logging.info(f"[get_user] Permission granted for user_id={user_id}")
+    # Only now call the admin endpoint
     return await auth_service.get_user(user_id=user_id)
 
 

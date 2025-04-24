@@ -109,6 +109,28 @@ def superuser_token():
     return asyncio.run(get_jwt("admin@example.com", "SuperSecret123!", superuser=True))
 
 
+@pytest.fixture(scope="module")
+def another_user_uid():
+    email = "another_user_forbidden_test@example.com"
+    password = "AnotherPassword123!"
+    auth_service = SupabaseClient().get_auth_service()
+    # Try to create the user; if exists, just fetch
+    try:
+        user = asyncio.run(auth_service.admin_create_user(
+            email=email,
+            password=password,
+            user_metadata={"is_superuser": False},
+            email_confirm=True,
+        ))
+        uid = user["id"] if isinstance(user, dict) else getattr(user, "id", None)
+    except Exception:
+        # Fallback: find user by email
+        user = asyncio.run(find_user_by_email(auth_service, email))
+        uid = user["id"] if user else None
+    assert uid, "Test fixture could not create or find the forbidden test user!"
+    return uid
+
+
 def auth_headers(token):
     return {"Authorization": f"Bearer {token}"}
 
@@ -128,8 +150,11 @@ def test_users_list_superuser(superuser_token):
     assert response.status_code == 200
 
 
-def test_get_user_by_id_forbidden_for_normal_user(normal_user_token):
-    response = client.get("/api/v1/supabase/auth/users123", headers=auth_headers(normal_user_token))
+def test_get_user_by_id_forbidden_for_normal_user(normal_user_token, another_user_uid):
+    response = client.get(
+        f"/api/v1/supabase/auth/users/{another_user_uid}",
+        headers=auth_headers(normal_user_token)
+    )
     assert response.status_code == 403
 
 
@@ -139,7 +164,10 @@ def test_get_user_by_id_superuser(superuser_token):
 
 
 def test_delete_user_requires_superuser(normal_user_token):
-    response = client.delete("/api/v1/supabase/auth/users123", headers=auth_headers(normal_user_token))
+    # This user should not be able to delete; use a valid user id for the path
+    forbidden_uid = "00000000-0000-0000-0000-000000000000"  # unlikely to exist, triggers permission logic
+    response = client.delete(f"/api/v1/supabase/auth/users/{forbidden_uid}", headers=auth_headers(normal_user_token))
+    # If the user exists, should get 403; if not, should still get 403 (not 404)
     assert response.status_code == 403
 
 
