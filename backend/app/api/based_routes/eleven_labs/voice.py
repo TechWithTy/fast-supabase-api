@@ -36,4 +36,11 @@ async def clone_voice(
             return VoiceCloneResponse(voice_id=response.get("voice_id", ""), details=response)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"ElevenLabs API error: {e}")
-    return await call_function_with_credits(endpoint_logic, request, current_user, db, credit_cost=5)
+    return await call_function_with_credits(
+        endpoint_logic,
+        request,
+        credit_type="ai",
+        db=db,
+        current_user=current_user,
+        credit_amount=5
+    )

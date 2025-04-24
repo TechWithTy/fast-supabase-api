@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime
 from typing import Optional
-
+from pydantic import BaseModel
+from typing import  Any
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -139,3 +140,47 @@ class CreditTransaction(SQLModel, table=True):
     description: str | None = Field(default=None, max_length=255)
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     user_profile: Optional["UserProfile"] = Relationship()
+
+
+class AICredits(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    allotted: int = Field(default=0, nullable=False)
+    used: int = Field(default=0, nullable=False)
+    reset_in_days: int = Field(default=30, nullable=False, alias="resetindays")
+    credits_available: int = Field(default=0, nullable=False, description="Current available credits (allotted - used + any top-ups)")
+    credits_topped_up: int = Field(default=0, nullable=False, description="Amount of credits last topped up")
+    time_topped_up: datetime | None = Field(default=None, description="Timestamp of last top-up")
+    subscription_id: uuid.UUID = Field(
+        foreign_key="userprofilesubscription.id", nullable=False, index=True, alias="subscriptionid"
+    )
+
+
+class LeadCredits(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    allotted: int = Field(default=0, nullable=False)
+    used: int = Field(default=0, nullable=False)
+    reset_in_days: int = Field(default=30, nullable=False, alias="resetindays")
+    credits_available: int = Field(default=0, nullable=False, description="Current available credits (allotted - used + any top-ups)")
+    credits_topped_up: int = Field(default=0, nullable=False, description="Amount of credits last topped up")
+    time_topped_up: datetime | None = Field(default=None, description="Timestamp of last top-up")
+    subscription_id: uuid.UUID = Field(
+        foreign_key="userprofilesubscription.id", nullable=False, index=True, alias="subscriptionid"
+    )
+
+
+class SkipTraceCredits(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    allotted: int = Field(default=0, nullable=False)
+    used: int = Field(default=0, nullable=False)
+    reset_in_days: int = Field(default=30, nullable=False, alias="resetindays")
+    credits_available: int = Field(default=0, nullable=False, description="Current available credits (allotted - used + any top-ups)")
+    credits_topped_up: int = Field(default=0, nullable=False, description="Amount of credits last topped up")
+    time_topped_up: datetime | None = Field(default=None, description="Timestamp of last top-up")
+    subscription_id: uuid.UUID = Field(
+        foreign_key="userprofilesubscription.id", nullable=False, index=True, alias="subscriptionid"
+    )
+
+# --- Moved to vapi/schemas.py ---
+# class AssistantOverrides(BaseModel): ...
+# class Assistant(BaseModel): ...
+# class CreateCallRequest(BaseModel): ...

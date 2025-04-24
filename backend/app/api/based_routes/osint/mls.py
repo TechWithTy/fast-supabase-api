@@ -9,6 +9,7 @@ from homeharvest import scrape_property
 from pydantic import BaseModel
 
 from app.api.utils.credits import call_function_with_credits
+from app.api.utils.credits_estimation import estimate_mls_credits
 
 router = APIRouter(prefix="/mls", tags=["MLS Property Info"])
 
@@ -37,32 +38,55 @@ async def mls_property_info_endpoint(
     current_user=Depends(None),
     db=Depends(None),
 ):
-    async def endpoint_logic(request, current_user):
-        try:
-            result = scrape_property(
-                location=req.location,
-                listing_type=req.listing_type,
-                return_type=req.return_type,
-                property_type=req.property_type,
-                radius=req.radius,
-                mls_only=req.mls_only,
-                past_days=req.past_days,
-                proxy=req.proxy,
-                date_from=req.date_from,
-                date_to=req.date_to,
-                foreclosure=req.foreclosure,
-                extra_property_data=req.extra_property_data,
-                exclude_pending=req.exclude_pending,
-                limit=req.limit,
-            )
-            # If pandas DataFrame, convert to dict
-            if hasattr(result, "to_dict"):
-                return result.to_dict(orient="records")
-            return result
-        except Exception as e:
-            logging.error(f"Error in /mls/property-info: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
-
+    # --- Phase 1: Estimate credits and check before running scrape ---
+    estimated_credits = estimate_mls_credits(req)
+    # Pre-check: use a dummy function to just check credits
+    async def dummy_logic(_request, _current_user):
+        return {"detail": "Credit check passed. Proceeding with MLS scrape."}
+    await call_function_with_credits(
+        dummy_logic,
+        request,
+        credit_type="skiptrace",
+        db=db,
+        current_user=current_user,
+        credit_amount=estimated_credits,
+    )
+    # --- Phase 2: Run main logic and charge actual credits ---
+    try:
+        results = scrape_property(
+            location=req.location,
+            listing_type=req.listing_type,
+            return_type=req.return_type,
+            property_type=req.property_type,
+            radius=req.radius,
+            mls_only=req.mls_only,
+            past_days=req.past_days,
+            proxy=req.proxy,
+            date_from=req.date_from,
+            date_to=req.date_to,
+            foreclosure=req.foreclosure,
+            extra_property_data=req.extra_property_data,
+            exclude_pending=req.exclude_pending,
+            limit=req.limit,
+        )
+        # If pandas DataFrame, convert to dict
+        if hasattr(results, "to_dict"):
+            results_dict = results.to_dict(orient="records")
+            num_items = max(len(results_dict), 1)
+            final_results = results_dict
+        else:
+            num_items = 1
+            final_results = results
+    except Exception as e:
+        logging.error(f"Error in /mls/property-info: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    async def endpoint_logic(_request, _current_user):
+        return {"results": final_results, "credits_used": num_items}
     return await call_function_with_credits(
-        endpoint_logic, request, current_user, db, credit_cost=5
+        endpoint_logic,
+        request,
+        credit_type="skiptrace",
+        db=db,
+        current_user=current_user,
+        credit_amount=num_items,
     )

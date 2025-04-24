@@ -24,7 +24,14 @@ async def api_create_assistant(req: AssistantCreateRequest, request: Request, cu
         if resp is None:
             raise HTTPException(status_code=500, detail="Failed to create assistant.")
         return resp
-    return await call_function_with_credits(endpoint_logic, request, current_user, db)
+    return await call_function_with_credits(
+        endpoint_logic,
+        request,
+        credit_type="ai",
+        db=db,
+        current_user=current_user,
+        credit_amount=0
+    )
 
 
 @router.get("")
@@ -54,7 +61,14 @@ async def api_update_assistant(assistant_id: str, req: AssistantUpdateRequest, r
         if resp is None:
             raise HTTPException(status_code=500, detail="Failed to update assistant.")
         return resp
-    return await call_function_with_credits(endpoint_logic, request, current_user, db)
+    return await call_function_with_credits(
+        endpoint_logic,
+        request,
+        credit_type="ai",
+        db=db,
+        current_user=current_user,
+        credit_amount=1
+    )
 
 
 @router.delete("/{assistant_id}")
@@ -64,4 +78,11 @@ async def api_delete_assistant(assistant_id: str, request: Request, current_user
         if resp is None:
             raise HTTPException(status_code=500, detail="Failed to delete assistant.")
         return resp
-    return await call_function_with_credits(endpoint_logic, request, current_user, db)
+    return await call_function_with_credits(
+        endpoint_logic,
+        request,
+        credit_type="ai",
+        db=db,
+        current_user=current_user,
+        credit_amount=0
+    )
