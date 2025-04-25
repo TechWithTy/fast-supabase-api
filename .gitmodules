@@ -26,3 +26,6 @@
 [submodule "backend/app/stripe_home"]
 	path = backend/app/stripe_home
 	url = https://github.com/TechWithTy/fast_stripe_python_template.git
+[submodule "backend/app/go_high_level_home"]
+	path = backend/app/go_high_level_home
+	url = https://github.com/TechWithTy/fast_go_high_level_python_template.git
