@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt /app/
 
 # Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN uv pip install --no-cache-dir -r requirements.txt
 
 # Stage 2: Python wheels
 FROM builder AS wheels
@@ -55,7 +55,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy wheels and install dependencies
 COPY --from=wheels /app/wheels /wheels
-RUN pip install --no-cache-dir --no-index --find-links=/wheels /wheels/* \
+RUN uv pip install --no-cache-dir --no-index --find-links=/wheels /wheels/* \
     && rm -rf /wheels
 
 # Copy project
@@ -72,7 +72,7 @@ USER appuser
 
 # Add healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-  CMD curl -f http://localhost:8000/api/health/ || exit 1
+    CMD curl -f http://localhost:8000/api/health/ || exit 1
 
 # Set restart policy
 LABEL com.centurylinklabs.watchtower.enable="true"
