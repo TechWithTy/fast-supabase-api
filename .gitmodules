@@ -32,3 +32,6 @@
 [submodule "backend/app/osint/theHarvester"]
 	path = backend/app/osint/theHarvester
 	url = https://github.com/TechWithTy/theHarvester.git
+[submodule "backend/app/model_context_protocol"]
+	path = backend/app/model_context_protocol
+	url = https://github.com/TechWithTy/lightspeed_mcp.git
