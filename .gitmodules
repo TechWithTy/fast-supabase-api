@@ -29,3 +29,6 @@
 [submodule "backend/app/go_high_level_home"]
 	path = backend/app/go_high_level_home
 	url = https://github.com/TechWithTy/fast_go_high_level_python_template.git
+[submodule "backend/app/eleven_labs_home"]
+	path = backend/app/eleven_labs_home
+	url = https://github.com/TechWithTy/fast_eleven_labs_python_template.git
