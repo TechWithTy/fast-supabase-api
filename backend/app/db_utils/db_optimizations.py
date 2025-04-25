@@ -1,135 +1,122 @@
-from django.db.models import Model, QuerySet
-from django.db.models.query import Prefetch
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union, TypeVar
+from sqlalchemy.orm import Query, joinedload, selectinload
+from sqlalchemy.ext.declarative import DeclarativeBase
 
+T = TypeVar('T', bound=DeclarativeBase)
 
 class QueryOptimizer:
     """
-    A utility class for optimizing Django database queries by intelligently
-    using select_related and prefetch_related to reduce the number of database queries.
+    A utility class for optimizing SQLAlchemy database queries by intelligently
+    using joinedload and selectinload to reduce the number of database queries.
     """
     
     @staticmethod
-    def optimize_single_object_query(model_class: Type[Model], 
+    def optimize_single_object_query(model_class: Type[T], 
                                     query_params: Dict[str, Any],
+                                    join_related_fields: Optional[List[str]] = None,
                                     select_related_fields: Optional[List[str]] = None,
-                                    prefetch_related_fields: Optional[List[str]] = None,
-                                    prefetch_related_querysets: Optional[List[Prefetch]] = None) -> Optional[Model]:
+                                    db_session=None) -> Optional[T]:
         """
-        Optimizes a query for retrieving a single object by using select_related and prefetch_related.
+        Optimizes a query for retrieving a single object by using joinedload and selectinload.
         
         Args:
-            model_class: The Django model class to query
+            model_class: The SQLAlchemy model class to query
             query_params: Dictionary of query parameters to filter the object
-            select_related_fields: List of field names for select_related (OneToOne or ForeignKey relationships)
-            prefetch_related_fields: List of field names for prefetch_related (ManyToMany or reverse relationships)
-            prefetch_related_querysets: List of Prefetch objects for more complex prefetch operations
+            join_related_fields: List of field names for joinedload (OneToOne or ForeignKey relationships)
+            select_related_fields: List of field names for selectinload (ManyToMany or reverse relationships)
+            db_session: SQLAlchemy database session
             
         Returns:
             A single model instance or None if not found
         """
-        queryset = model_class.objects.filter(**query_params)
+        query = db_session.query(model_class).filter_by(**query_params)
         
+        if join_related_fields:
+            for field in join_related_fields:
+                query = query.options(joinedload(field))
+            
         if select_related_fields:
-            queryset = queryset.select_related(*select_related_fields)
-            
-        if prefetch_related_fields:
-            queryset = queryset.prefetch_related(*prefetch_related_fields)
-            
-        if prefetch_related_querysets:
-            for prefetch_qs in prefetch_related_querysets:
-                queryset = queryset.prefetch_related(prefetch_qs)
+            for field in select_related_fields:
+                query = query.options(selectinload(field))
         
-        try:
-            return queryset.get()
-        except model_class.DoesNotExist:
-            return None
+        return query.first()
     
     @staticmethod
-    def optimize_queryset(queryset: QuerySet,
-                         select_related_fields: Optional[List[str]] = None,
-                         prefetch_related_fields: Optional[List[str]] = None,
-                         prefetch_related_querysets: Optional[List[Prefetch]] = None) -> QuerySet:
+    def optimize_queryset(query: Query,
+                         join_related_fields: Optional[List[str]] = None,
+                         select_related_fields: Optional[List[str]] = None) -> Query:
         """
-        Optimizes an existing queryset by adding select_related and prefetch_related.
+        Optimizes an existing query by adding joinedload and selectinload.
         
         Args:
-            queryset: The existing queryset to optimize
-            select_related_fields: List of field names for select_related
-            prefetch_related_fields: List of field names for prefetch_related
-            prefetch_related_querysets: List of Prefetch objects for complex prefetch operations
+            query: The existing SQLAlchemy query to optimize
+            join_related_fields: List of field names for joinedload
+            select_related_fields: List of field names for selectinload
             
         Returns:
-            An optimized queryset
+            An optimized query
         """
+        if join_related_fields:
+            for field in join_related_fields:
+                query = query.options(joinedload(field))
+            
         if select_related_fields:
-            queryset = queryset.select_related(*select_related_fields)
-            
-        if prefetch_related_fields:
-            queryset = queryset.prefetch_related(*prefetch_related_fields)
-            
-        if prefetch_related_querysets:
-            for prefetch_qs in prefetch_related_querysets:
-                queryset = queryset.prefetch_related(prefetch_qs)
+            for field in select_related_fields:
+                query = query.options(selectinload(field))
                 
-        return queryset
+        return query
 
 
 class OptimizedQuerySetMixin:
     """
-    A mixin for Django views that adds methods for optimizing querysets with
-    select_related and prefetch_related.
-    
-    This can be used with Django's class-based views like ListView, DetailView, etc.
+    A mixin for FastAPI dependency injectors that adds methods for optimizing queries with
+    joinedload and selectinload.
     """
     
+    join_related_fields: List[str] = []
     select_related_fields: List[str] = []
-    prefetch_related_fields: List[str] = []
-    prefetch_related_querysets: List[Prefetch] = []
     
-    def get_queryset(self):
+    def get_query(self, db_session):
         """
-        Override the default get_queryset method to apply optimizations.
+        Get the base query for the model.
         """
-        queryset = super().get_queryset()
-        return self._optimize_queryset(queryset)
+        query = db_session.query(self.model)
+        return self._optimize_query(query)
     
-    def _optimize_queryset(self, queryset):
+    def _optimize_query(self, query):
         """
-        Apply select_related and prefetch_related optimizations to a queryset.
+        Apply joinedload and selectinload optimizations to a query.
         """
-        # Apply select_related if fields are defined
+        # Apply joinedload if fields are defined
+        if self.join_related_fields:
+            for field in self.join_related_fields:
+                query = query.options(joinedload(field))
+        
+        # Apply selectinload for related fields
         if self.select_related_fields:
-            queryset = queryset.select_related(*self.select_related_fields)
+            for field in self.select_related_fields:
+                query = query.options(selectinload(field))
         
-        # Apply prefetch_related for regular fields
-        if self.prefetch_related_fields:
-            queryset = queryset.prefetch_related(*self.prefetch_related_fields)
-        
-        # Apply complex prefetch_related operations
-        if self.prefetch_related_querysets:
-            for prefetch_qs in self.prefetch_related_querysets:
-                queryset = queryset.prefetch_related(prefetch_qs)
-        
-        return queryset
+        return query
 
 
 # Common optimization patterns for the UserProfile model and related models
-def get_optimized_user_profile(user_id: Union[str, int]) -> Optional[Model]:
+def get_optimized_user_profile(user_id: Union[str, int], db_session) -> Optional[Any]:
     """
     Get a UserProfile with all commonly needed related objects prefetched.
     
     Args:
         user_id: The primary key of the user
+        db_session: SQLAlchemy database session
         
     Returns:
         UserProfile object with optimized queries or None if not found
     """
-    from apps.users.models import UserProfile
+    from app.models import UserProfile
     
     return QueryOptimizer.optimize_single_object_query(
         model_class=UserProfile,
         query_params={'user_id': user_id},
-        select_related_fields=['user'],
-        # Add other related fields if needed
+        join_related_fields=['user'],
+        db_session=db_session
     )

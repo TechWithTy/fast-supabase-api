@@ -180,6 +180,16 @@ services:
       - grafana-data:/var/lib/grafana
       - ./config/grafana/provisioning:/etc/grafana/provisioning
       - ./config/grafana/dashboards:/etc/grafana/dashboards
+    # TODO: Add environment variables for advanced config:
+    #   - CELERY_WORKER_CONCURRENCY
+    #   - CELERY_TASK_SOFT_TIME_LIMIT
+    #   - CELERY_TASK_HARD_TIME_LIMIT
+    #   - GRAFANA_ADMIN_USER
+    #   - GRAFANA_ADMIN_PASSWORD
+    #   - GRAFANA_URL
+    #   - PROMETHEUS_URL
+    #   - SENTRY_ENVIRONMENT
+    #   - All Apache Pulsar variables (see .env.example)
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USERNAME:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}

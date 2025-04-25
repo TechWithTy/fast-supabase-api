@@ -29,7 +29,7 @@ from backend.utils.sensitive import load_environment_files
 load_environment_files()  # Load environment variables
 
 # Import cache utilities (excluding ensure_redis_connection which doesn't exist in the module)
-from backend.apps.caching.utils.redis_cache import (
+from backend.app.caching.utils.redis_cache import (
     get_or_set_cache, get_cached_result, cache_result, invalidate_cache
 )
 
