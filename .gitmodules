@@ -12,9 +12,7 @@
 
 
 
-[submodule "backend/app/api/based_routes/osint/theHarvester"]
-	path = backend/app/api/based_routes/osint/theHarvester
-	url = https://github.com/TechWithTy/theHarvester.git
+
 
 
 [submodule "backend/app/stripe_home"]
