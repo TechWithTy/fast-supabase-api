@@ -23,3 +23,6 @@
 	path = backend/app/osint/tools/theHarvester
 	url = https://github.com/TechWithTy/theHarvester.git
 
+[submodule "backend/app/stripe_home"]
+	path = backend/app/stripe_home
+	url = https://github.com/TechWithTy/stripe-python-template.git
