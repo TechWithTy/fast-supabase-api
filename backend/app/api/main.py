@@ -10,7 +10,12 @@ from fastapi import (
     Request,
 )
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+
+# from app.supabase_home.client import SupabaseClient
+# from app.supabase_home.functions.storage import SupabaseStorageService
+# Scalar FastAPI API Reference Plugin
+from scalar_fastapi import get_scalar_api_reference
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -50,9 +55,6 @@ from app.api.based_routes.vapi.webhooks import router as vapi_webhooks_router
 from app.api.routes.db import private
 from app.core.config import settings
 
-# from app.supabase_home.client import SupabaseClient
-# from app.supabase_home.functions.storage import SupabaseStorageService
-
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 
@@ -91,6 +93,23 @@ class CSRFMiddleware(BaseHTTPMiddleware):
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(CSRFMiddleware)
+
+# --- Scalar API Reference Endpoint ---
+# This endpoint serves the Scalar API Reference UI for your FastAPI app.
+# It is not included in the OpenAPI schema.
+
+
+@app.get("/scalar", include_in_schema=False, response_class=HTMLResponse)
+async def scalar_html() -> HTMLResponse:
+    """
+    Serves the Scalar API Reference UI for interactive API docs.
+    Not included in OpenAPI schema.
+    """
+    return get_scalar_api_reference(
+        openapi_url=app.openapi_url,
+        title=app.title,
+        # You can add more config here if needed, e.g., dark_mode=True
+    )
 
 
 @app.exception_handler(Exception)
