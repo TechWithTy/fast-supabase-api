@@ -2,7 +2,13 @@ import os
 from contextlib import asynccontextmanager
 
 import redis.asyncio as redis
-from fastapi import APIRouter, FastAPI, Header, HTTPException, Request, UploadFile, File, Depends, Form
+from fastapi import (
+    APIRouter,
+    FastAPI,
+    Header,
+    HTTPException,
+    Request,
+)
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -14,7 +20,8 @@ from app.api.based_routes.db.client import router as db_client_router
 from app.api.based_routes.db.database import router as db_database_router
 from app.api.based_routes.db.edge_functions import router as db_edge_functions_router
 from app.api.based_routes.db.real_time import router as db_real_time_router
-from app.api.based_routes.db.storage import router as db_storage_router, upload_file as storage_upload_file
+from app.api.based_routes.db.storage import router as db_storage_router
+from app.api.based_routes.db.storage import upload_file as storage_upload_file
 
 # ElevenLabs routers
 from app.api.based_routes.eleven_labs.voice import router as elevenlabs_voice_router
@@ -40,10 +47,11 @@ from app.api.based_routes.vapi.assistants import router as vapi_assistants_route
 from app.api.based_routes.vapi.calls import router as vapi_calls_router
 from app.api.based_routes.vapi.voice import router as vapi_voice_router
 from app.api.based_routes.vapi.webhooks import router as vapi_webhooks_router
-from app.api.routes.db import items, login, private, users, utils
+from app.api.routes.db import private
 from app.core.config import settings
-from app.supabase_home.client import SupabaseClient
-from app.supabase_home.functions.storage import SupabaseStorageService
+
+# from app.supabase_home.client import SupabaseClient
+# from app.supabase_home.functions.storage import SupabaseStorageService
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
@@ -62,10 +70,14 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         # Only enforce CSRF on state-changing methods
         if request.method in ("POST", "PUT", "PATCH", "DELETE"):
             # Allow exceptions for authentication endpoints (sign-in, login, etc.)
-            if request.url.path.startswith("/api/v1/supabase/auth/signin") or request.url.path.startswith("/api/v1/supabase/auth/login"):
+            if request.url.path.startswith(
+                "/api/v1/supabase/auth/signin"
+            ) or request.url.path.startswith("/api/v1/supabase/auth/login"):
                 return await call_next(request)
             csrf_token = request.headers.get("x-csrf-token")
-            if not csrf_token or not await self.validate_csrf_token(csrf_token, request):
+            if not csrf_token or not await self.validate_csrf_token(
+                csrf_token, request
+            ):
                 return JSONResponse(
                     status_code=403, content={"detail": "CSRF token missing or invalid"}
                 )
@@ -82,31 +94,32 @@ app.add_middleware(CSRFMiddleware)
 
 
 @app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
+async def global_exception_handler(_request: Request, exc: Exception):
     import traceback
+
     print("EXCEPTION:", exc)
     traceback.print_exc()
     return JSONResponse(
         status_code=500,
-        content={"error": "An internal error occurred. Please contact support."}
+        content={"error": "An internal error occurred. Please contact support."},
     )
 
 
 @app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+async def http_exception_handler(_request: Request, exc: StarletteHTTPException):
     # Return a consistent error format for HTTPExceptions
     return JSONResponse(
         status_code=exc.status_code,
-        content={"error": exc.detail if exc.detail else "HTTP error occurred."}
+        content={"error": exc.detail if exc.detail else "HTTP error occurred."},
     )
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
+async def validation_exception_handler(_request: Request, exc: RequestValidationError):
     # Return a consistent error format for validation errors
     return JSONResponse(
         status_code=422,
-        content={"error": "Validation failed.", "details": exc.errors()}
+        content={"error": "Validation failed.", "details": exc.errors()},
     )
 
 
@@ -128,13 +141,11 @@ def protected_resource(authorization: str = Header(None)):
         raise HTTPException(status_code=403, detail="Insufficient scope")
     return {"message": "Access granted!"}
 
+
 # --- File Upload for User (Admin Bypass Email Verification) ---
 # Directly mount the storage upload_file endpoint at the new route, reusing the logic
 api_router.add_api_route(
-    "/upload-for-user",
-    storage_upload_file,
-    methods=["POST"],
-    tags=["Supabase DB"]
+    "/upload-for-user", storage_upload_file, methods=["POST"], tags=["Supabase DB"]
 )
 
 # Register all routers on the main api_router
@@ -161,6 +172,7 @@ api_router.include_router(theharvester_router, prefix="/osint/theharvester")
 if settings.ENVIRONMENT == "local":
     api_router.include_router(private.router)
 
+
 # Add a /api/v1/trigger-error endpoint to always raise an error for error handling tests
 @api_router.get("/trigger-error")
 def trigger_error():
@@ -168,6 +180,7 @@ def trigger_error():
     Endpoint that always raises an exception for error handling tests.
     """
     raise RuntimeError("This is a test error for error handling.")
+
 
 # Attach api_router to main app
 app.include_router(api_router, prefix="/api/v1")
