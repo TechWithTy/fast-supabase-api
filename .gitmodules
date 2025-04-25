@@ -28,3 +28,6 @@
 [submodule "backend/app/eleven_labs_home"]
 	path = backend/app/eleven_labs_home
 	url = https://github.com/TechWithTy/fast_eleven_labs_python_template.git
+[submodule "backend/app/supabase_home"]
+	path = backend/app/supabase_home
+	url = https://github.com/TechWithTy/fast_supabase_python_template.git
