@@ -18,6 +18,7 @@
 [submodule "backend/app/model_context_protocol"]
 	path = backend/app/model_context_protocol
 	url = https://github.com/TechWithTy/lightspeed_mcp.git
+	
 [submodule "util_scripts"]
 	path = util_scripts
 	url = https://github.com/TechWithTy/scripts.git
