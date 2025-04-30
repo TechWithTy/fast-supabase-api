@@ -10,7 +10,6 @@
 	url = https://github.com/TechWithTy/fast_stripe_python_template.git
 
 
-
 [submodule "backend/app/supabase_home"]
 	path = backend/app/supabase_home
 	url = https://github.com/TechWithTy/fast_supabase_python_template.git
@@ -22,9 +21,32 @@
 [submodule "util_scripts"]
 	path = util_scripts
 	url = https://github.com/TechWithTy/scripts.git
-[submodule "backend/_docs/backend/_docs/backend_best_practices"]
-	path = backend/_docs/backend/_docs/backend_best_practices
-	url = https://github.com/TechWithTy/backend_best_practices.git
+
 [submodule "backend/_docs/backend_best_practices"]
 	path = backend/_docs/backend_best_practices
 	url = https://github.com/TechWithTy/backend_best_practices.git
+
+
+[submodule "backend/app/osint/Phunter"]
+	path = backend/app/osint/Phunter
+	url = https://github.com/TechWithTy/Phunter.git
+
+[submodule "backend/app/osint/Zehef"]
+	path = backend/app/osint/Zehef
+	url = https://github.com/TechWithTy/Zehef.git
+[submodule "backend/app/osint/theHarvester"]
+	path = backend/app/osint/theHarvester
+	url = https://github.com/TechWithTy/theHarvester.git
+
+
+
+
+[submodule "backend/app/eleven_labs_home"]
+	path = backend/app/eleven_labs_home
+	url = https://github.com/TechWithTy/fast_eleven_labs_python_template.git
+[submodule "backend/app/go_high_level_home"]
+	path = backend/app/go_high_level_home
+	url = https://github.com/TechWithTy/fast_go_high_level_python_template.git
+[submodule "backend/app/vapi_home"]
+	path = backend/app/vapi_home
+	url = https://github.com/TechWithTy/vapi-python-template.git
