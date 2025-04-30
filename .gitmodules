@@ -47,6 +47,3 @@
 [submodule "backend/app/go_high_level_home"]
 	path = backend/app/go_high_level_home
 	url = https://github.com/TechWithTy/fast_go_high_level_python_template.git
-[submodule "backend/app/vapi_home"]
-	path = backend/app/vapi_home
-	url = https://github.com/TechWithTy/vapi-python-template.git
