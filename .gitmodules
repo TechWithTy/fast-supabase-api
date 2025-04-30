@@ -22,3 +22,9 @@
 [submodule "util_scripts"]
 	path = util_scripts
 	url = https://github.com/TechWithTy/scripts.git
+[submodule "backend/_docs/backend/_docs/backend_best_practices"]
+	path = backend/_docs/backend/_docs/backend_best_practices
+	url = https://github.com/TechWithTy/backend_best_practices.git
+[submodule "backend/_docs/backend_best_practices"]
+	path = backend/_docs/backend_best_practices
+	url = https://github.com/TechWithTy/backend_best_practices.git
